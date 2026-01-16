@@ -30,7 +30,7 @@ Task tool (general-purpose):
 
     Once you're clear on requirements:
     1. Implement exactly what the task specifies
-    2. Write tests (following TDD if task says to)
+    2. Add tests for critical paths and public APIs
     3. Verify implementation works
     4. Commit your work
     5. Self-review (see below)
@@ -40,6 +40,23 @@ Task tool (general-purpose):
 
     **While you work:** If you encounter something unexpected or unclear, **ask questions**.
     It's always OK to pause and clarify. Don't guess or make assumptions.
+
+    ## Testing Expectations
+
+    Apply pragmatic-testing judgment:
+
+    **MUST have tests:**
+    - Public APIs that other modules depend on
+    - Core business logic
+    - Bug fixes (regression tests)
+
+    **CAN defer tests:**
+    - Internal helper functions
+    - Exploratory/experimental code
+    - Code that will likely change significantly
+
+    **Do NOT rigidly follow test-first methodology.**
+    Implement the feature, then add tests for what matters.
 
     ## Before Reporting Back: Self-Review
 
@@ -61,9 +78,9 @@ Task tool (general-purpose):
     - Did I follow existing patterns in the codebase?
 
     **Testing:**
+    - Do tests exist for critical paths?
     - Do tests actually verify behavior (not just mock behavior)?
-    - Did I follow TDD if required?
-    - Are tests comprehensive?
+    - If tests were deferred, is there a good reason?
 
     If you find issues during self-review, fix them now before reporting.
 
@@ -71,7 +88,7 @@ Task tool (general-purpose):
 
     When done, report:
     - What you implemented
-    - What you tested and test results
+    - What tests you added (or why deferred)
     - Files changed
     - Self-review findings (if any)
     - Any issues or concerns

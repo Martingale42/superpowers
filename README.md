@@ -6,9 +6,9 @@ Superpowers is a complete software development workflow for your coding agents, 
 
 It starts from the moment you fire up your coding agent. As soon as it sees that you're building something, it *doesn't* just jump into trying to write code. Instead, it steps back and asks you what you're really trying to do. 
 
-Once it's teased a spec out of the conversation, it shows it to you in chunks short enough to actually read and digest. 
+Once it's teased a spec out of the conversation, it shows it to you in chunks short enough to actually read and digest.
 
-After you've signed off on the design, your agent puts together an implementation plan that's clear enough for an enthusiastic junior engineer with poor taste, no judgement, no project context, and an aversion to testing to follow. It emphasizes true red/green TDD, YAGNI (You Aren't Gonna Need It), and DRY. 
+After you've signed off on the design, your agent puts together an implementation plan that's clear enough for an enthusiastic junior engineer with no project context to follow. It emphasizes pragmatic testing, YAGNI (You Aren't Gonna Need It), and DRY. 
 
 Next up, once you say "go", it launches a *subagent-driven-development* process, having agents work through each engineering task, inspecting and reviewing their work, and continuing forward. It's not uncommon for Claude to be able to work autonomously for a couple hours at a time without deviating from the plan you put together.
 
@@ -83,11 +83,11 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 
 2. **using-git-worktrees** - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
 
-3. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
+3. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (5-15 minutes each). Every task has exact file paths, implementation details, verification steps.
 
 4. **subagent-driven-development** or **executing-plans** - Activates with plan. Dispatches fresh subagent per task with two-stage review (spec compliance, then code quality), or executes in batches with human checkpoints.
 
-5. **test-driven-development** - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
+5. **pragmatic-testing** - Guides testing decisions during implementation. Tests are required for public APIs, core logic, and bug fixes. Tests can be deferred for exploratory code and internal helpers.
 
 6. **requesting-code-review** - Activates between tasks. Reviews against plan, reports issues by severity. Critical issues block progress.
 
@@ -100,7 +100,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 ### Skills Library
 
 **Testing**
-- **test-driven-development** - RED-GREEN-REFACTOR cycle (includes testing anti-patterns reference)
+- **pragmatic-testing** - Context-appropriate testing guidance (when to test, when to defer, when to skip)
 
 **Debugging**
 - **systematic-debugging** - 4-phase root cause process (includes root-cause-tracing, defense-in-depth, condition-based-waiting techniques)
@@ -123,7 +123,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 
 ## Philosophy
 
-- **Test-Driven Development** - Write tests first, always
+- **Pragmatic Testing** - Tests validate correctness; write them when they add value
 - **Systematic over ad-hoc** - Process over guessing
 - **Complexity reduction** - Simplicity as primary goal
 - **Evidence over claims** - Verify before declaring success
@@ -157,3 +157,54 @@ MIT License - see LICENSE file for details
 
 - **Issues**: https://github.com/obra/superpowers/issues
 - **Marketplace**: https://github.com/obra/superpowers-marketplace
+
+---
+
+## Pragmatic Testing Approach
+
+Superpowers uses a pragmatic approach to testing that prioritizes validation over ritual.
+
+### Core Principle
+
+```
+Tests are validation tools, not design tools.
+Write tests at the right time, not as a ceremonial gate.
+```
+
+### When to Write Tests
+
+| Category | Examples | Testing Expectation |
+|----------|----------|---------------------|
+| **Must Test** | Public APIs, core business logic, FFI boundaries, bug fixes | Required |
+| **Can Defer** | Exploratory prototypes, internal helpers, experimental features | Add when stabilized |
+| **Skip** | Pure wrappers, config classes without logic, unreachable defensive code | Low value |
+
+### Development Workflows
+
+**For Exploratory Development:**
+1. Spike — Implement a working prototype
+2. Evaluate — Does the approach work?
+3. Stabilize — Add tests for critical paths
+4. Refactor — Improve design with test safety net
+
+**For Known Requirements:**
+1. Implement — Build the feature
+2. Identify — What are the critical paths?
+3. Test — Cover those paths
+4. Verify — Ensure tests catch real bugs
+
+**For Bug Fixes:**
+1. Understand — Reproduce and find root cause
+2. Fix — Implement the correction
+3. Verify — Confirm the fix works
+4. Protect — Add regression test (recommended, not mandatory)
+
+### Skills Using This Approach
+
+| Skill | Role |
+|-------|------|
+| `pragmatic-testing` | Defines when and how to test |
+| `writing-plans` | Task structure: Implementation → Verification → Tests (if applicable) |
+| `systematic-debugging` | Regression tests recommended based on value |
+| `subagent-driven-development` | Subagents follow pragmatic testing expectations |
+| `writing-skills` | Skill validation follows same principles |
