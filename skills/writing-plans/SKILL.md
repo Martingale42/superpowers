@@ -34,7 +34,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For Claude:** Use superpowers:executing-plans or superpowers:subagent-driven-development to implement this plan.
+> **For Claude:** Use superpowers:executing-plans, superpowers:subagent-driven-development, or superpowers:orchestrator-driven-development to implement this plan.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -213,11 +213,13 @@ git commit -m "refactor: extract common validation helpers"
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+**"Plan complete and saved to `docs/plans/<filename>.md`. Three execution options:**
 
 **1. Subagent-Driven (this session)** — I dispatch fresh subagent per task, review between tasks, fast iteration
 
 **2. Parallel Session (separate)** — Open new session with executing-plans, batch execution with checkpoints
+
+**3. Orchestrator (separate)** — Generate executor/reviewer/QA session files, run as orchestrated pipeline with review gates and QA
 
 **Which approach?"**
 
@@ -229,3 +231,9 @@ After saving the plan, offer execution choice:
 **If Parallel Session chosen:**
 - Guide them to open new session in worktree
 - **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+
+**If Orchestrator chosen:**
+- **REQUIRED SUB-SKILL:** Use superpowers:orchestrator-driven-development
+- Generates session files in `docs/sessions/` (orchestrator, resume, executor, reviewer, QA, progress.json)
+- User opens new session with orchestrator.md as initial prompt
+- Orchestrator dispatches executor/reviewer/QA as subagents in a deterministic pipeline
