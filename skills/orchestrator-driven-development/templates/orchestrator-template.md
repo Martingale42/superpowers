@@ -67,11 +67,23 @@ After ALL batches complete:
 |-------|-------|-------|---------|
 {{BATCH_TABLE_ROWS}}
 
+## Model & Effort Assignments
+
+| Role | Model | Effort | Thinking keyword |
+|------|-------|--------|------------------|
+| Executor | {{EXECUTOR_MODEL}} | {{EXECUTOR_EFFORT}} | {{EXECUTOR_THINKING}} |
+| Reviewer | {{REVIEWER_MODEL}} | {{REVIEWER_EFFORT}} | {{REVIEWER_THINKING}} |
+| QA | {{QA_MODEL}} | {{QA_EFFORT}} | {{QA_THINKING}} |
+
+- **Model is a hard setting** passed to the Agent tool's `model` parameter. **Effort is a soft lever** — the thinking keyword is prepended to the dispatch prompt to raise the reasoning budget (the Agent tool has no effort parameter).
+- Executor-for-fixes uses the Executor row; Reviewer-for-verify uses the Reviewer row.
+- Recommended: run THIS coordinator session on `opus` — it cannot self-assign its own model.
+
 ## How to Dispatch Each Role
 
 ### Dispatching Executor
 
-Use the Agent tool to spawn an executor subagent. Provide it with:
+Use the Agent tool with `model: {{EXECUTOR_MODEL}}` to spawn an executor subagent. Prepend `{{EXECUTOR_THINKING}}` to the prompt below (omit if blank), then provide it with:
 
 \```
 You are the Executor for {{PROJECT_NAME}}. Implement Batch N (Tasks X-Y).
@@ -97,7 +109,7 @@ When done, output:
 
 ### Dispatching Reviewer
 
-Use the Agent tool to spawn a reviewer subagent. Provide it with:
+Use the Agent tool with `model: {{REVIEWER_MODEL}}` to spawn a reviewer subagent. Prepend `{{REVIEWER_THINKING}}` to the prompt below (omit if blank), then provide it with:
 
 \```
 You are the Code Reviewer for {{PROJECT_NAME}}. Review Batch N (Tasks X-Y).
@@ -130,7 +142,7 @@ Output your verdict and a summary of findings.
 
 ### Dispatching Executor for Fixes
 
-If the reviewer returns CHANGES REQUESTED:
+If the reviewer returns CHANGES REQUESTED, use the Agent tool with `model: {{EXECUTOR_MODEL}}` and prepend `{{EXECUTOR_THINKING}}` to the prompt below (omit if blank):
 
 \```
 You are the Executor for {{PROJECT_NAME}}. Fix the issues from the Batch N code review.
@@ -151,6 +163,8 @@ When done, output list of fixed issues with commit hashes.
 
 ### Dispatching Reviewer for Fix Verification
 
+Use the Agent tool with `model: {{REVIEWER_MODEL}}` and prepend `{{REVIEWER_THINKING}}` to the prompt below (omit if blank).
+
 \```
 You are the Code Reviewer for {{PROJECT_NAME}}. Verify that Batch N fixes address the review findings.
 
@@ -166,6 +180,8 @@ Output your updated verdict.
 \```
 
 ### Dispatching QA (after all batches)
+
+Use the Agent tool with `model: {{QA_MODEL}}` and prepend `{{QA_THINKING}}` to the prompt below (omit if blank).
 
 \```
 You are the QA Tester for {{PROJECT_NAME}}. Run a full user-perspective test of all implemented features.
@@ -252,6 +268,11 @@ After EVERY step (execute, review, fix, verify, QA), update `docs/sessions/progr
 {
   "current_batch": 1,
   "current_step": "review",
+  "model_assignments": {
+    "executor": {"model": "{{EXECUTOR_MODEL}}", "effort": "{{EXECUTOR_EFFORT}}", "thinking": "{{EXECUTOR_THINKING}}"},
+    "reviewer": {"model": "{{REVIEWER_MODEL}}", "effort": "{{REVIEWER_EFFORT}}", "thinking": "{{REVIEWER_THINKING}}"},
+    "qa":       {"model": "{{QA_MODEL}}",       "effort": "{{QA_EFFORT}}",       "thinking": "{{QA_THINKING}}"}
+  },
   "step_detail": "Reviewer dispatched, awaiting result",
   "batches_completed": [],
   "batches_in_progress": {
