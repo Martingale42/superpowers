@@ -145,12 +145,10 @@ git commit -m "feat(orchestrator): bake per-role model and thinking keyword into
 
 **Verification:**
 
-Run: `python3 -c "import json,sys; json.load(open('skills/orchestrator-driven-development/templates/progress-template.json'))" && echo VALID`
-
-Note: the template now contains `{{...}}` placeholders which are not valid JSON. Instead
-verify structure by eye and run the check on a placeholder-substituted copy. Simpler check:
-`grep -n "model_assignments" skills/orchestrator-driven-development/templates/progress-template.json skills/orchestrator-driven-development/templates/resume-template.md`
-Expected: key present in JSON template and a restore step referencing it in resume.
+Run: `uv run python -c "import json; json.load(open('skills/orchestrator-driven-development/templates/progress-template.json')); print('VALID')"`
+Expected: `VALID`. The placeholders sit inside JSON string values (e.g. `"model": "{{EXECUTOR_MODEL}}"`), so the template parses as valid JSON as-is — no substitution needed.
+Also: `grep -n "model_assignments" skills/orchestrator-driven-development/templates/progress-template.json skills/orchestrator-driven-development/templates/resume-template.md`
+Expected: key present in the JSON template and a restore step referencing it in resume.
 
 **Commit:**
 ```bash

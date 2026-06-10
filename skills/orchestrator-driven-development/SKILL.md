@@ -38,22 +38,31 @@ Group plan tasks into batches following these rules:
 
 ### Step 2.5: Assign Models & Effort to Roles
 
-Before generating files, use the **AskUserQuestion tool** to let the user assign a model and
-reasoning effort to each dispatched role. Pre-fill these defaults so the user can accept in
-one tap or customize:
+Before generating files, collect a model + effort for each role with the **AskUserQuestion
+tool**. That tool caps at **4 questions, each with at most 4 options**, so use exactly this shape:
 
-| Role | Default model | Default effort |
-|------|---------------|----------------|
-| Executor | `sonnet` | medium |
-| Reviewer | `opus` | high |
-| QA | `sonnet` | medium |
+- **One question per role** → 3 questions (Executor, Reviewer, QA); within the 4-question cap.
+- Each question lists **up to 4 curated `model · effort` combos** as options, the role's
+  **default first** with `(Recommended)` appended to its label. The tool auto-adds an
+  **Other** choice — that is where the user types a custom `model · effort` not listed.
+- Do **not** ask one question per (role × dimension): 3 roles × 2 dimensions = 6 questions
+  exceeds the cap, and packing every `model × effort` combo into one question (3 × 4 = 12)
+  exceeds the 4-option cap.
+
+Curated option sets (Option 1 = the default; apply it if the user skips that role's question):
+
+| Role | Option 1 (Recommended) | Option 2 | Option 3 | Option 4 |
+|------|------------------------|----------|----------|----------|
+| Executor | `sonnet` · medium | `sonnet` · high | `opus` · high | `haiku` · low |
+| Reviewer | `opus` · high | `opus` · medium | `sonnet` · high | `sonnet` · medium |
+| QA | `sonnet` · medium | `sonnet` · high | `opus` · high | `haiku` · low |
 
 Map the chosen effort to a thinking-directive keyword. **This table is the single source of
 truth** — the generated files prepend the keyword to each role's dispatch prompt:
 
-| Effort | Thinking keyword |
-|--------|------------------|
-| `minimal` | (none) |
+| Effort | Thinking keyword — the literal value substituted into `{{*_THINKING}}` |
+|--------|------------------------------------------------------------------------|
+| `minimal` | *(empty string — substitute nothing; do NOT write the text "(none)")* |
 | `low` | `think` |
 | `medium` | `think hard` |
 | `high` | `ultrathink` |
@@ -64,6 +73,9 @@ Rules:
   parameter, so it is a **hard** setting.
 - **Effort** is a **soft** lever: the keyword raises the subagent's reasoning budget but is
   not a hard guarantee.
+- For `minimal` effort, substitute every `{{*_THINKING}}` with an **empty string** (not the
+  text "(none)"). The dispatch blocks say "omit if blank," so no directive is prepended and
+  `progress.json` stores `"thinking": ""`.
 - **Executor-for-fixes** reuses the Executor assignment; **Reviewer-for-verify** reuses the
   Reviewer assignment.
 - If the user skips the question, apply the defaults — never block generation.
