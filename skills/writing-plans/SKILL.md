@@ -49,7 +49,7 @@ This structure informs the task decomposition. Each task should produce self-con
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task, or superpowers:orchestrator-driven-development for a stateful, resumable multi-session pipeline. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -135,11 +135,13 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
+**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Three execution options:**
 
 **1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
 
 **2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
+
+**3. Orchestrator (separate session)** - Generate executor/reviewer/QA session files and run them as a stateful, resumable pipeline with review gates and a final QA pass; coordination is hands-free and state is tracked in progress.json
 
 **Which approach?"**
 
@@ -150,3 +152,9 @@ After saving the plan, offer execution choice:
 **If Inline Execution chosen:**
 - **REQUIRED SUB-SKILL:** Use superpowers:executing-plans
 - Batch execution with checkpoints for review
+
+**If Orchestrator chosen:**
+- **REQUIRED SUB-SKILL:** Use superpowers:orchestrator-driven-development
+- Generates session files in `docs/sessions/` (orchestrator, resume, executor, reviewer, QA, progress.json)
+- User opens a new session with orchestrator.md as the initial prompt; resumable via resume.md + progress.json
+- Orchestrator dispatches executor/reviewer/QA as subagents in a deterministic pipeline
