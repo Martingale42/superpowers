@@ -36,6 +36,44 @@ Group plan tasks into batches following these rules:
 - **Ordering** — follow the plan's phase order (which may differ from task number order)
 - If the plan has no phases, group into batches of 3-5 related tasks
 
+### Step 2.5: Assign Models & Effort to Roles
+
+Before generating files, use the **AskUserQuestion tool** to let the user assign a model and
+reasoning effort to each dispatched role. Pre-fill these defaults so the user can accept in
+one tap or customize:
+
+| Role | Default model | Default effort |
+|------|---------------|----------------|
+| Executor | `sonnet` | medium |
+| Reviewer | `opus` | high |
+| QA | `sonnet` | medium |
+
+Map the chosen effort to a thinking-directive keyword. **This table is the single source of
+truth** — the generated files prepend the keyword to each role's dispatch prompt:
+
+| Effort | Thinking keyword |
+|--------|------------------|
+| `minimal` | (none) |
+| `low` | `think` |
+| `medium` | `think hard` |
+| `high` | `ultrathink` |
+
+Rules:
+- **Model** is restricted to `{opus, sonnet, haiku}` — family-level, always the latest
+  version in that family (no version pinning). It is passed to the Agent tool's `model`
+  parameter, so it is a **hard** setting.
+- **Effort** is a **soft** lever: the keyword raises the subagent's reasoning budget but is
+  not a hard guarantee.
+- **Executor-for-fixes** reuses the Executor assignment; **Reviewer-for-verify** reuses the
+  Reviewer assignment.
+- If the user skips the question, apply the defaults — never block generation.
+- The orchestrator session's own model cannot be set here (it is the session the user opens
+  manually); `orchestrator.md` records a recommendation instead.
+
+Carry the resulting `(model, effort, thinking-keyword)` for each role into Step 3 as the
+substitution values for the `{{EXECUTOR_MODEL}}` / `{{EXECUTOR_EFFORT}}` /
+`{{EXECUTOR_THINKING}}`, `{{REVIEWER_*}}`, and `{{QA_*}}` placeholders.
+
 ### Step 3: Generate Session Files
 
 Create all files in `<project-root>/docs/sessions/`:
@@ -53,6 +91,7 @@ Create all files in `<project-root>/docs/sessions/`:
 - Read the corresponding template for structure and format
 - Fill in project-specific content: project name, plan paths, batch order, rules, verification commands
 - Adapt dispatch prompts to the project's language/framework (Rust → cargo, JS → npm/bun, Python → pytest, etc.)
+- Substitute the per-role model, effort, and thinking-keyword placeholders from the Step 2.5 assignments
 
 ### Step 4: Commit and Hand Off
 
