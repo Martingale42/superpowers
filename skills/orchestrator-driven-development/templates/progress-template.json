@@ -1,6 +1,11 @@
 {
   "current_batch": 1,
   "current_step": "execute",
+  "model_assignments": {
+    "executor": {"model": "{{EXECUTOR_MODEL}}", "effort": "{{EXECUTOR_EFFORT}}", "thinking": "{{EXECUTOR_THINKING}}"},
+    "reviewer": {"model": "{{REVIEWER_MODEL}}", "effort": "{{REVIEWER_EFFORT}}", "thinking": "{{REVIEWER_THINKING}}"},
+    "qa":       {"model": "{{QA_MODEL}}",       "effort": "{{QA_EFFORT}}",       "thinking": "{{QA_THINKING}}"}
+  },
   "step_detail": "Ready to begin Batch 1 execution.",
   "batches_completed": [],
   "batches_in_progress": null,

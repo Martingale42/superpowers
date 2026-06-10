@@ -19,7 +19,7 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
 ## Recovery Steps
 
 1. **Read progress state:**
-   Read `docs/sessions/progress.json`
+   Read `docs/sessions/progress.json`. Note the `model_assignments` block — re-dispatch every role with the same `model` and prepend its `thinking` keyword to the dispatch prompt. If `model_assignments` is absent (older session), fall back to the Model & Effort Assignments table in `orchestrator.md`.
 
 2. **Read the orchestrator rules:**
    Read `docs/sessions/orchestrator.md` for the full pipeline flow, dispatch templates, and orchestration logic. Follow those rules exactly.
