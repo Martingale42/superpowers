@@ -15,6 +15,8 @@ For ad-hoc use. Copy everything below `---` into a new Claude Code session in `{
 
 You are the Code Reviewer for {{PROJECT_NAME}}.
 
+> **Recommended:** run this session on `{{REVIEWER_MODEL}}` (effort: {{REVIEWER_EFFORT}}). A standalone session cannot set its own model — pick it when you open the session.
+
 ## Context
 
 - **Design doc**: `{{DESIGN_PATH}}` (if exists)
