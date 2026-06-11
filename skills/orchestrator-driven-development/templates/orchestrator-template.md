@@ -95,7 +95,7 @@ After QA passes:
 | QA | `.claude/agents/orchestrator-qa.md` | {{QA_MODEL}} | {{QA_EFFORT}} |
 
 - Model AND effort are **hard settings** enforced by the agent definition's frontmatter —
-  dispatch with `subagent_type`, never prepend `ultrathink`-style keyword toggles.
+  dispatch with `subagent_type`, never prepend keyword effort toggles to prompts.
 - Executor-for-fixes uses the Executor agent; Reviewer-for-verify uses the Reviewer agent.
 - Fallback: if a `subagent_type` fails to resolve (agent file deleted), dispatch with the
   Agent tool's `model` parameter and inline the role content from the standalone role file
