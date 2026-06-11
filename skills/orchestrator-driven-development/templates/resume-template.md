@@ -25,7 +25,8 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
        frontmatter.
    (2) If the agent file is missing but `model_assignments` has the role, dispatch with
        the Agent tool's `model` parameter and inline the role content from the standalone
-       role file (`docs/sessions/0N-*.md`); effort cannot be enforced in this mode.
+       role file (`docs/sessions/01-executor.md`, `02-code-reviewer.md`, or
+       `03-qa-tester.md`); effort cannot be enforced in this mode.
    (3) If neither exists (session generated before this feature), dispatch with no
        `model` parameter — the session defaults.
 
@@ -57,6 +58,9 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
 | `audit_fix` | Audit fixes in progress. Check the final-audit report for unresolved Critical findings; dispatch executor. |
 | `audit_verify` | Re-run the audit to verify fixes (counts toward the 2-cycle cap). |
 | `done` | Everything is complete. Nothing to do. |
+
+(Generation note: if the user chose **skip** for Final Audit in Step 2.5, omit the
+`final_audit` / `audit_fix` / `audit_verify` rows to match the generated orchestrator.md.)
 
 7. **Resume the orchestration loop** from the determined point, following the rules in `docs/sessions/orchestrator.md`.
 
