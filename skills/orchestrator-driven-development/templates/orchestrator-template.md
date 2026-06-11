@@ -66,8 +66,8 @@ After QA passes:
 │              FINAL AUDIT {{AUDIT_DEPTH_NOTE}}        │
 │                                                      │
 │  Orchestrator invokes the /code-review skill in     │
-│  THIS session (whole feature-branch diff vs main,   │
-│  effort: {{AUDIT_DEPTH}})                            │
+│  THIS session (whole feature-branch diff vs the     │
+│  default branch, effort: {{AUDIT_DEPTH}})            │
 │        ↓                                             │
 │  Critical findings:                                  │
 │        → Executor: fix → re-audit (max 2 cycles)    │
@@ -78,7 +78,7 @@ After QA passes:
 └─────────────────────────────────────────────────────┘
 \```
 
-(Generation note: replace `{{AUDIT_DEPTH_NOTE}}` with the chosen depth, e.g. `(depth: high)`. If the user chose **skip** for Final Audit in Step 2.5, omit this FINAL AUDIT box and every Final Audit section below entirely.)
+(Generation note: replace `{{AUDIT_DEPTH_NOTE}}` with the chosen depth, e.g. `(depth: high)`. If the user chose **skip** for Final Audit in Step 2.5, omit ALL audit content at generation time: this FINAL AUDIT box, the "Final Audit" section, the audit block in Orchestration Logic, the audit rows in Important Rules, and the `final_audit`/`audit_fix`/`audit_verify` step values — keep only the `audit_status` field, with the rule "set `audit_status` to `\"SKIPPED\"` when QA passes".)
 
 ## Batch Order
 
@@ -210,11 +210,13 @@ whole-branch pass catches what per-batch reviews miss (cross-batch interactions,
 acceptance logic, stale doc claims).
 
 1. **Run the audit**: invoke the `/code-review` skill (Skill tool) at effort
-   `{{AUDIT_DEPTH}}`, scoped to the **full feature-branch diff vs the main branch** —
-   not just the last batch.
+   `{{AUDIT_DEPTH}}`, scoped to the **full feature-branch diff vs `{{MAIN_BRANCH}}`** —
+   not just the last batch. Example invocation:
+   `Skill: code-review, args: "{{AUDIT_DEPTH}} — review the full feature-branch diff vs {{MAIN_BRANCH}}"`.
+   Record this step as `final_audit` in progress.json.
 2. **Critical/P0 findings** → dispatch `subagent_type: "orchestrator-executor"` with
-   this prompt, then re-run the audit (max 2 audit fix cycles). Still failing after
-   2 cycles → STOP and ask the user.
+   this prompt (step `audit_fix`), then re-run the audit (step `audit_verify`; max 2
+   audit fix cycles). Still failing after 2 cycles → STOP and ask the user.
 
 \```
 Fix the Critical findings from the final audit.
@@ -232,7 +234,7 @@ When done, output list of fixed findings with commit hashes.
 
 **Fallback** — if the `/code-review` skill is unavailable in this session: dispatch
 `subagent_type: "orchestrator-reviewer"` with a whole-branch audit prompt covering the
-full diff vs main from multiple finder angles — algorithmic/mathematical correctness,
+full diff vs `{{MAIN_BRANCH}}` from multiple finder angles — algorithmic/mathematical correctness,
 test acceptance logic (tolerances, assertions that can't fail), documentation claims vs
 actual behavior, API contracts — and require per-finding adversarial verification
 (try to disprove each finding against the code) before reporting.
@@ -279,12 +281,12 @@ if qa_result.verdict == "FAIL":
 
 print("ALL BATCHES COMPLETE + QA PASSED")
 
-# Final audit (skip if AUDIT_DEPTH == skip)
-audit_result = run_code_review_skill(scope="branch", effort=AUDIT_DEPTH)
+# Final audit (this whole block is omitted at generation time if the user chose skip)
+audit_result = run_code_review_skill(scope="branch", effort=AUDIT_DEPTH)  # step: final_audit
 audit_attempts = 0
 while audit_result.has_critical and audit_attempts < 2:
-    dispatch_executor_fixes_from_audit(audit_result)
-    audit_result = run_code_review_skill(scope="branch", effort=AUDIT_DEPTH)
+    dispatch_executor_fixes_from_audit(audit_result)                      # step: audit_fix
+    audit_result = run_code_review_skill(scope="branch", effort=AUDIT_DEPTH)  # step: audit_verify
     audit_attempts += 1
 if audit_result.has_critical:
     STOP — ask user for guidance
@@ -349,7 +351,8 @@ After EVERY step (execute, review, fix, verify, QA, audit), update `docs/session
 - `current_step` is one of: `execute`, `review`, `fix`, `fix_verify`, `qa`, `qa_fix`, `qa_verify`, `final_audit`, `audit_fix`, `audit_verify`, `done`
 - After batch approval: move batch from `batches_in_progress` to `batches_completed`, increment `current_batch`
 - After QA pass: set `qa_status` to `"PASS"`
-- After audit pass: set `audit_status` to `"PASS"` (or `"SKIPPED"` if the user chose skip)
+- Record the initial audit as `final_audit`, executor fixes as `audit_fix`, and each
+  re-audit as `audit_verify`. After the audit passes: set `audit_status` to `"PASS"`
 - Include commit hashes in `executor_commits` so reviewer knows what to diff
 
 ## Start
