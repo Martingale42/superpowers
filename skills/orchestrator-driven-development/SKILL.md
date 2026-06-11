@@ -47,9 +47,9 @@ with the **AskUserQuestion tool**. That tool caps at **4 questions, each with at
 - Each question lists **up to 4 curated options**, the **default first** with
   `(Recommended)` appended to its label. The tool auto-adds an **Other** choice — that is
   where the user types a custom `model · effort` not listed.
-- Do **not** ask one question per (role × dimension): 3 roles × 2 dimensions = 6 questions
-  exceeds the cap, and packing every `model × effort` combo into one question (3 × 4 = 12)
-  exceeds the 4-option cap.
+- Do **not** ask one question per (role × dimension): 3 roles × 2 dimensions plus the
+  audit question = 7 questions exceeds the cap, and packing every `model × effort` combo
+  into one question (3 × 5 = 15) exceeds the 4-option cap.
 
 Curated option sets (Option 1 = the default; apply it if the user skips that question):
 
@@ -62,7 +62,7 @@ Curated option sets (Option 1 = the default; apply it if the user skips that que
 
 Rules:
 - **Model** is restricted to `{opus, sonnet, haiku}` — family-level, always the latest
-  version in that family (no version pinning).
+  version in that family (no version pinning). It is a **hard setting**.
 - **Effort** is one of `low / medium / high / xhigh / max` — **also a hard setting**:
   both model and effort are written into the generated
   `.claude/agents/orchestrator-<role>.md` frontmatter, which the harness enforces for
