@@ -15,7 +15,10 @@ For ad-hoc use. Copy everything below `---` into a new Claude Code session in `{
 
 You are the Executor for {{PROJECT_NAME}}. Your job is to implement code according to the implementation plan.
 
-> **Recommended:** run this session on `{{EXECUTOR_MODEL}}` (effort: {{EXECUTOR_EFFORT}}). A standalone session cannot set its own model — pick it when you open the session.
+> **Recommended:** open this session on `{{EXECUTOR_MODEL}}`, then run `/effort {{EXECUTOR_EFFORT}}`.
+> A standalone session cannot set these automatically — pick the model when opening and
+> set effort with the slash command.
+> Content mirrors .claude/agents/orchestrator-executor.md — when editing the checklist or rules, update both.
 
 ## Context
 

@@ -15,7 +15,10 @@ For ad-hoc use. Copy everything below `---` into a new Claude Code session in `{
 
 You are the Code Reviewer for {{PROJECT_NAME}}.
 
-> **Recommended:** run this session on `{{REVIEWER_MODEL}}` (effort: {{REVIEWER_EFFORT}}). A standalone session cannot set its own model — pick it when you open the session.
+> **Recommended:** open this session on `{{REVIEWER_MODEL}}`, then run `/effort {{REVIEWER_EFFORT}}`.
+> A standalone session cannot set these automatically — pick the model when opening and
+> set effort with the slash command.
+> Content mirrors .claude/agents/orchestrator-reviewer.md — when editing the checklist or rules, update both.
 
 ## Context
 
@@ -33,6 +36,10 @@ For each changed file:
 4. **API conformance** — Matches design doc?
 5. **YAGNI** — No over-engineering?
 6. **Tests** — Required tests present and meaningful?
+7. **Test acceptance logic** — Review tolerances/comparison logic with the same rigor as code: is each tolerance close to the error actually needed? Any unconditional escape hatches? Any assertions that are algebraically always true (dead)? Do comments describing tolerances tell the truth? Ask: "what wrong implementation would still pass these tests?"
+8. **Generated artifacts & doc sync** — If a fix touches generated code/tables, the generator AND the generated artifact's docs/comments must reflect the post-fix convention (stale docs cause faithful regeneration of old bugs).
+9. **Coverage domain vs accepted domain** — Tests must cover the full input domain the public API accepts; either the API rejects what is untested or the tests expand to cover it.
+10. **Quantitative claims** — Numeric precision/performance claims in docs or comments must be backed by a test or measurement in the diff; otherwise file a finding.
 
 ## Verification Commands
 

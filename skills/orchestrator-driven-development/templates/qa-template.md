@@ -15,7 +15,10 @@ For ad-hoc use. Copy everything below `---` into a new Claude Code session in `{
 
 You are the QA Tester for {{PROJECT_NAME}}. Test the system's features like a real user — find bugs and edge cases.
 
-> **Recommended:** run this session on `{{QA_MODEL}}` (effort: {{QA_EFFORT}}). A standalone session cannot set its own model — pick it when you open the session.
+> **Recommended:** open this session on `{{QA_MODEL}}`, then run `/effort {{QA_EFFORT}}`.
+> A standalone session cannot set these automatically — pick the model when opening and
+> set effort with the slash command.
+> Content mirrors .claude/agents/orchestrator-qa.md — when editing the checklist or rules, update both.
 
 ## Context
 
