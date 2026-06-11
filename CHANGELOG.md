@@ -33,7 +33,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   generated-artifact doc sync, coverage vs the accepted domain, and quantitative claims.
   Motivated by a post-hoc audit of an orchestrator-built feature that found **1 Critical
   + 4 High** the pipeline missed — all in test tolerance logic and artifact docs.
-  Commit `cc82da4`.
+  Commits `f56857f` (agent body), `cc82da4` (standalone template).
 - New `templates/agent-definitions-template.md` (source for the three generated agent
   files) and explicit QA fix-cycle dispatch blocks in the orchestrator template.
   Commits `f56857f`, `58202a4`.

@@ -78,7 +78,7 @@ After QA passes:
 └─────────────────────────────────────────────────────┘
 \```
 
-(Generation note: replace `{{AUDIT_DEPTH_NOTE}}` with the chosen depth, e.g. `(depth: high)`. If the user chose **skip** for Final Audit in Step 2.5, omit ALL audit content at generation time: this FINAL AUDIT box, the "Final Audit" section, the audit block in Orchestration Logic, the audit rows in Important Rules, and the `final_audit`/`audit_fix`/`audit_verify` step values — keep only the `audit_status` field, with the rule "set `audit_status` to `\"SKIPPED\"` when QA passes".)
+(Generation note: replace `{{AUDIT_DEPTH_NOTE}}` with the chosen depth, e.g. `(depth: high)`. If the user chose **skip** for Final Audit in Step 2.5, omit ALL audit content at generation time: the "After QA passes:" connector line and this FINAL AUDIT box, the "Final Audit" section, the audit block in Orchestration Logic, the audit rows in Important Rules, the word "audit" in the Progress Tracking step enumeration, and the `final_audit`/`audit_fix`/`audit_verify` step values — keep only the `audit_status` field, with the rule "set `audit_status` to `\"SKIPPED\"` when QA passes".)
 
 ## Batch Order
 
@@ -237,7 +237,8 @@ When done, output list of fixed findings with commit hashes.
 full diff vs `{{MAIN_BRANCH}}` from multiple finder angles — algorithmic/mathematical correctness,
 test acceptance logic (tolerances, assertions that can't fail), documentation claims vs
 actual behavior, API contracts — and require per-finding adversarial verification
-(try to disprove each finding against the code) before reporting.
+(try to disprove each finding against the code) before reporting. Note: in fallback mode
+the audit runs at the Reviewer's frontmatter effort, not `{{AUDIT_DEPTH}}`.
 
 **NEVER invoke `/code-review ultra`** — ultra is user-triggered and billed; the local
 depth cap for this audit is `max`.
@@ -340,6 +341,7 @@ After EVERY step (execute, review, fix, verify, QA, audit), update `docs/session
   },
   "qa_status": null,
   "audit_status": null,
+  "audit_attempts": 0,
   "last_updated": "YYYY-MM-DDTHH:MM:SSZ",
   "notes": "Any context needed for resume"
 }
@@ -352,7 +354,9 @@ After EVERY step (execute, review, fix, verify, QA, audit), update `docs/session
 - After batch approval: move batch from `batches_in_progress` to `batches_completed`, increment `current_batch`
 - After QA pass: set `qa_status` to `"PASS"`
 - Record the initial audit as `final_audit`, executor fixes as `audit_fix`, and each
-  re-audit as `audit_verify`. After the audit passes: set `audit_status` to `"PASS"`
+  re-audit as `audit_verify`. Increment `audit_attempts` on each `audit_fix` cycle (it
+  persists the 2-cycle cap across interruptions). After the audit passes: set
+  `audit_status` to `"PASS"`
 - Include commit hashes in `executor_commits` so reviewer knows what to diff
 
 ## Start

@@ -86,7 +86,8 @@ Step 3 as the substitution values for the `{{EXECUTOR_MODEL}}` / `{{EXECUTOR_EFF
 
 ### Step 3: Generate Session Files
 
-Create all files in `<project-root>/docs/sessions/`:
+Create the session files in `<project-root>/docs/sessions/` and the agent definitions
+in `<project-root>/.claude/agents/`:
 
 | File | Template | Purpose |
 |------|----------|---------|

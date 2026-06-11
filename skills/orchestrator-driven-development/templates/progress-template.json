@@ -11,6 +11,7 @@
   "batches_in_progress": null,
   "qa_status": null,
   "audit_status": null,
+  "audit_attempts": 0,
   "last_updated": "{{TIMESTAMP}}",
   "notes": "Orchestrator initialized from plan."
 }

@@ -451,7 +451,10 @@ grep -rn "THINKING\|think hard\|minimal" skills/orchestrator-driven-development/
 grep -rn "ultrathink" skills/orchestrator-driven-development/
 ```
 
-Expected: zero hits for the first command; `ultrathink` only in SKILL.md's single explanatory note. Fix any stragglers found.
+Expected: BOTH commands hit only SKILL.md's single Step 2.5 explanatory note (which
+intentionally contains `ultrathink` and the "`think`/`think hard` are no-ops" mention —
+that note is mandated by Task 1 and must NOT be removed as a straggler). Any hit outside
+that note is a straggler — fix it.
 
 **Verification:**
 
