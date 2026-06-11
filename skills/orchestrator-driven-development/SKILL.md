@@ -1,6 +1,6 @@
 ---
 name: orchestrator-driven-development
-description: "Use when user picks orchestrator execution option after writing a plan. Generates session files (orchestrator, resume, executor, reviewer, QA, progress.json) in docs/sessions/ for a multi-agent pipeline with review gates and QA."
+description: "Use when user picks orchestrator execution option after writing a plan. Generates session files (orchestrator, resume, executor, reviewer, QA, progress.json) in docs/sessions/ plus subagent definitions in .claude/agents/ for a multi-agent pipeline with review gates, QA, and a final audit."
 ---
 
 # Orchestrator-Driven Development
@@ -38,57 +38,56 @@ Group plan tasks into batches following these rules:
 
 ### Step 2.5: Assign Models & Effort to Roles
 
-Before generating files, collect a model + effort for each role with the **AskUserQuestion
-tool**. That tool caps at **4 questions, each with at most 4 options**, so use exactly this shape:
+Before generating files, collect a model + effort for each role and a Final Audit depth
+with the **AskUserQuestion tool**. That tool caps at **4 questions, each with at most
+4 options**, so use exactly this shape:
 
-- **One question per role** → 3 questions (Executor, Reviewer, QA); within the 4-question cap.
-- Each question lists **up to 4 curated `model · effort` combos** as options, the role's
-  **default first** with `(Recommended)` appended to its label. The tool auto-adds an
-  **Other** choice — that is where the user types a custom `model · effort` not listed.
-- Do **not** ask one question per (role × dimension): 3 roles × 2 dimensions = 6 questions
-  exceeds the cap, and packing every `model × effort` combo into one question (3 × 4 = 12)
-  exceeds the 4-option cap.
+- **4 questions** (at the cap): one per role (Executor, Reviewer, QA), each offering
+  curated `model · effort` combos, plus one for **Final Audit depth**.
+- Each question lists **up to 4 curated options**, the **default first** with
+  `(Recommended)` appended to its label. The tool auto-adds an **Other** choice — that is
+  where the user types a custom `model · effort` not listed.
+- Do **not** ask one question per (role × dimension): 3 roles × 2 dimensions plus the
+  audit question = 7 questions exceeds the cap, and packing every `model × effort` combo
+  into one question (3 × 5 = 15) exceeds the 4-option cap.
 
-Curated option sets (Option 1 = the default; apply it if the user skips that role's question):
+Curated option sets (Option 1 = the default; apply it if the user skips that question):
 
 | Role | Option 1 (Recommended) | Option 2 | Option 3 | Option 4 |
 |------|------------------------|----------|----------|----------|
-| Executor | `sonnet` · medium | `sonnet` · high | `opus` · high | `haiku` · low |
-| Reviewer | `opus` · high | `opus` · medium | `sonnet` · high | `sonnet` · medium |
-| QA | `sonnet` · medium | `sonnet` · high | `opus` · high | `haiku` · low |
-
-Map the chosen effort to a thinking-directive keyword. **This table is the single source of
-truth** — the generated files prepend the keyword to each role's dispatch prompt:
-
-| Effort | Thinking keyword — the literal value substituted into `{{*_THINKING}}` |
-|--------|------------------------------------------------------------------------|
-| `minimal` | *(empty string — substitute nothing; do NOT write the text "(none)")* |
-| `low` | `think` |
-| `medium` | `think hard` |
-| `high` | `ultrathink` |
+| Executor | `sonnet` · high | `sonnet` · xhigh | `opus` · high | `haiku` · medium |
+| Reviewer | `opus` · xhigh | `opus` · high | `sonnet` · xhigh | `sonnet` · high |
+| QA | `sonnet` · high | `sonnet` · xhigh | `opus` · high | `haiku` · medium |
+| Final Audit | `/code-review` at high | `/code-review` at max | skip | — |
 
 Rules:
 - **Model** is restricted to `{opus, sonnet, haiku}` — family-level, always the latest
-  version in that family (no version pinning). It is passed to the Agent tool's `model`
-  parameter, so it is a **hard** setting.
-- **Effort** is a **soft** lever: the keyword raises the subagent's reasoning budget but is
-  not a hard guarantee.
-- For `minimal` effort, substitute every `{{*_THINKING}}` with an **empty string** (not the
-  text "(none)"). The dispatch blocks say "omit if blank," so no directive is prepended and
-  `progress.json` stores `"thinking": ""`.
-- **Executor-for-fixes** reuses the Executor assignment; **Reviewer-for-verify** reuses the
-  Reviewer assignment.
-- If the user skips the question, apply the defaults — never block generation.
-- The orchestrator session's own model cannot be set here (it is the session the user opens
-  manually); `orchestrator.md` records a recommendation instead.
+  version in that family (no version pinning). It is a **hard setting**.
+- **Effort** is one of `low / medium / high / xhigh / max` — **also a hard setting**:
+  both model and effort are written into the generated
+  `.claude/agents/orchestrator-<role>.md` frontmatter, which the harness enforces for
+  every dispatch of that subagent type.
+- `ultracode` is a Claude Code **session-only setting** (xhigh + dynamic workflows), not
+  an effort level: it cannot be assigned to roles and is not recommended for the
+  orchestrator session itself (the coordinator should not spawn its own workflows).
+- `ultrathink` is a user-facing one-shot prompt toggle; the pipeline does **not** use it
+  (frontmatter effort replaced keyword prepending; `think`/`think hard` are no-ops in
+  current Claude Code).
+- **Executor-for-fixes** reuses the Executor assignment; **Reviewer-for-verify** reuses
+  the Reviewer assignment; Final Audit fix dispatches reuse the Executor assignment.
+- If the user skips a question, apply the defaults — never block generation.
+- The orchestrator session's own model and effort cannot be set here (it is the session
+  the user opens manually); `orchestrator.md` records a recommendation instead
+  (`opus`, `/effort high`).
 
-Carry the resulting `(model, effort, thinking-keyword)` for each role into Step 3 as the
-substitution values for the `{{EXECUTOR_MODEL}}` / `{{EXECUTOR_EFFORT}}` /
-`{{EXECUTOR_THINKING}}`, `{{REVIEWER_*}}`, and `{{QA_*}}` placeholders.
+Carry the resulting `(model, effort)` for each role plus the Final Audit choice into
+Step 3 as the substitution values for the `{{EXECUTOR_MODEL}}` / `{{EXECUTOR_EFFORT}}`,
+`{{REVIEWER_*}}`, `{{QA_*}}`, and `{{AUDIT_DEPTH}}` placeholders.
 
 ### Step 3: Generate Session Files
 
-Create all files in `<project-root>/docs/sessions/`:
+Create the session files in `<project-root>/docs/sessions/` and the agent definitions
+in `<project-root>/.claude/agents/`:
 
 | File | Template | Purpose |
 |------|----------|---------|
@@ -98,20 +97,32 @@ Create all files in `<project-root>/docs/sessions/`:
 | `02-code-reviewer.md` | `reviewer-template.md` | Standalone reviewer for ad-hoc use |
 | `03-qa-tester.md` | `qa-template.md` | Standalone QA tester for ad-hoc use |
 | `progress.json` | `progress-template.json` | Initial state: batch 1, step execute |
+| `.claude/agents/orchestrator-{executor,reviewer,qa}.md` | `agent-definitions-template.md` | Subagent definitions with hard model/effort frontmatter |
+
+**Note:** the three agent-definition files go in `<project-root>/.claude/agents/`, not
+`docs/sessions/` — that is where the harness discovers custom subagent types.
 
 **When generating each file:**
 - Read the corresponding template for structure and format
 - Fill in project-specific content: project name, plan paths, batch order, rules, verification commands
 - Adapt dispatch prompts to the project's language/framework (Rust → cargo, JS → npm/bun, Python → pytest, etc.)
-- Substitute the per-role model, effort, and thinking-keyword placeholders from the Step 2.5 assignments
+- Substitute the per-role `{{ROLE_MODEL}}` / `{{ROLE_EFFORT}}` values from the Step 2.5
+  assignments into the agent-definition frontmatter and the assignment tables in
+  `orchestrator.md` and the standalone role files
+- Substitute `{{AUDIT_DEPTH}}` and `{{MAIN_BRANCH}}` (the repo's default branch, e.g.
+  `main` or `master`) in `orchestrator.md`
+- If the user chose **skip** for Final Audit, omit all audit content at generation time
+  per the generation notes in `orchestrator-template.md` and `resume-template.md` —
+  keep only the `audit_status` field in progress.json, with the rule that the
+  orchestrator sets it to `"SKIPPED"` when QA passes
 
 ### Step 4: Commit and Hand Off
 
-1. Commit all session files: `git add docs/sessions/ && git commit -m "docs: add orchestrator session files"`
+1. Commit all session files: `git add docs/sessions/ .claude/agents/ && git commit -m "docs: add orchestrator session files"`
 2. Tell the user:
 
 ```
-Session files generated in docs/sessions/.
+Session files generated in docs/sessions/; agent definitions in .claude/agents/.
 
 To start the orchestrator:
 1. Open a new Claude Code session in this project directory
@@ -137,6 +148,11 @@ After All Batches:
   QA (full test) → if FAIL: Executor (fix) → QA (verify) → loop (max 2)
     → if still FAIL after 2: STOP, ask user
     → if PASS: done
+
+After QA PASS:
+  Final Audit (/code-review on whole branch) → if Critical: Executor fix → re-audit (max 2)
+    → if still Critical after 2: STOP, ask user
+    → else: done (non-blocking findings → final-audit BACKLOG)
 ```
 
 ## Key Principles
@@ -146,3 +162,5 @@ After All Batches:
 - **Self-healing via progress.json** — the orchestrator can resume from any interruption
 - **Standalone role files are backup** — the orchestrator dispatches roles as subagents, but the standalone files let users run roles independently
 - **resume.md points to orchestrator.md** — keeps one source of truth for the pipeline rules
+- **Hard settings over imperatives** — model and effort live in agent-definition frontmatter enforced by the harness, not in prompt keywords
+- **Review the tests, not just the code** — the reviewer checklist targets test acceptance logic and doc claims, and the Final Audit re-checks the whole branch with fresh eyes
