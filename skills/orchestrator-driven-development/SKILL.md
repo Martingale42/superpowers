@@ -38,53 +38,51 @@ Group plan tasks into batches following these rules:
 
 ### Step 2.5: Assign Models & Effort to Roles
 
-Before generating files, collect a model + effort for each role with the **AskUserQuestion
-tool**. That tool caps at **4 questions, each with at most 4 options**, so use exactly this shape:
+Before generating files, collect a model + effort for each role and a Final Audit depth
+with the **AskUserQuestion tool**. That tool caps at **4 questions, each with at most
+4 options**, so use exactly this shape:
 
-- **One question per role** → 3 questions (Executor, Reviewer, QA); within the 4-question cap.
-- Each question lists **up to 4 curated `model · effort` combos** as options, the role's
-  **default first** with `(Recommended)` appended to its label. The tool auto-adds an
-  **Other** choice — that is where the user types a custom `model · effort` not listed.
+- **4 questions** (at the cap): one per role (Executor, Reviewer, QA), each offering
+  curated `model · effort` combos, plus one for **Final Audit depth**.
+- Each question lists **up to 4 curated options**, the **default first** with
+  `(Recommended)` appended to its label. The tool auto-adds an **Other** choice — that is
+  where the user types a custom `model · effort` not listed.
 - Do **not** ask one question per (role × dimension): 3 roles × 2 dimensions = 6 questions
   exceeds the cap, and packing every `model × effort` combo into one question (3 × 4 = 12)
   exceeds the 4-option cap.
 
-Curated option sets (Option 1 = the default; apply it if the user skips that role's question):
+Curated option sets (Option 1 = the default; apply it if the user skips that question):
 
 | Role | Option 1 (Recommended) | Option 2 | Option 3 | Option 4 |
 |------|------------------------|----------|----------|----------|
-| Executor | `sonnet` · medium | `sonnet` · high | `opus` · high | `haiku` · low |
-| Reviewer | `opus` · high | `opus` · medium | `sonnet` · high | `sonnet` · medium |
-| QA | `sonnet` · medium | `sonnet` · high | `opus` · high | `haiku` · low |
-
-Map the chosen effort to a thinking-directive keyword. **This table is the single source of
-truth** — the generated files prepend the keyword to each role's dispatch prompt:
-
-| Effort | Thinking keyword — the literal value substituted into `{{*_THINKING}}` |
-|--------|------------------------------------------------------------------------|
-| `minimal` | *(empty string — substitute nothing; do NOT write the text "(none)")* |
-| `low` | `think` |
-| `medium` | `think hard` |
-| `high` | `ultrathink` |
+| Executor | `sonnet` · high | `sonnet` · xhigh | `opus` · high | `haiku` · medium |
+| Reviewer | `opus` · xhigh | `opus` · high | `sonnet` · xhigh | `sonnet` · high |
+| QA | `sonnet` · high | `sonnet` · xhigh | `opus` · high | `haiku` · medium |
+| Final Audit | `/code-review` at high | `/code-review` at max | skip | — |
 
 Rules:
 - **Model** is restricted to `{opus, sonnet, haiku}` — family-level, always the latest
-  version in that family (no version pinning). It is passed to the Agent tool's `model`
-  parameter, so it is a **hard** setting.
-- **Effort** is a **soft** lever: the keyword raises the subagent's reasoning budget but is
-  not a hard guarantee.
-- For `minimal` effort, substitute every `{{*_THINKING}}` with an **empty string** (not the
-  text "(none)"). The dispatch blocks say "omit if blank," so no directive is prepended and
-  `progress.json` stores `"thinking": ""`.
-- **Executor-for-fixes** reuses the Executor assignment; **Reviewer-for-verify** reuses the
-  Reviewer assignment.
-- If the user skips the question, apply the defaults — never block generation.
-- The orchestrator session's own model cannot be set here (it is the session the user opens
-  manually); `orchestrator.md` records a recommendation instead.
+  version in that family (no version pinning).
+- **Effort** is one of `low / medium / high / xhigh / max` — **also a hard setting**:
+  both model and effort are written into the generated
+  `.claude/agents/orchestrator-<role>.md` frontmatter, which the harness enforces for
+  every dispatch of that subagent type.
+- `ultracode` is a Claude Code **session-only setting** (xhigh + dynamic workflows), not
+  an effort level: it cannot be assigned to roles and is not recommended for the
+  orchestrator session itself (the coordinator should not spawn its own workflows).
+- `ultrathink` is a user-facing one-shot prompt toggle; the pipeline does **not** use it
+  (frontmatter effort replaced keyword prepending; `think`/`think hard` are no-ops in
+  current Claude Code).
+- **Executor-for-fixes** reuses the Executor assignment; **Reviewer-for-verify** reuses
+  the Reviewer assignment; Final Audit fix dispatches reuse the Executor assignment.
+- If the user skips a question, apply the defaults — never block generation.
+- The orchestrator session's own model and effort cannot be set here (it is the session
+  the user opens manually); `orchestrator.md` records a recommendation instead
+  (`opus`, `/effort high`).
 
-Carry the resulting `(model, effort, thinking-keyword)` for each role into Step 3 as the
-substitution values for the `{{EXECUTOR_MODEL}}` / `{{EXECUTOR_EFFORT}}` /
-`{{EXECUTOR_THINKING}}`, `{{REVIEWER_*}}`, and `{{QA_*}}` placeholders.
+Carry the resulting `(model, effort)` for each role plus the Final Audit choice into
+Step 3 as the substitution values for the `{{EXECUTOR_MODEL}}` / `{{EXECUTOR_EFFORT}}`,
+`{{REVIEWER_*}}`, `{{QA_*}}`, and `{{AUDIT_DEPTH}}` placeholders.
 
 ### Step 3: Generate Session Files
 
