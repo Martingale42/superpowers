@@ -80,7 +80,8 @@ After ALL batches complete:
 - Executor-for-fixes uses the Executor agent; Reviewer-for-verify uses the Reviewer agent.
 - Fallback: if a `subagent_type` fails to resolve (agent file deleted), dispatch with the
   Agent tool's `model` parameter and inline the role content from the standalone role file
-  (effort cannot be enforced in this mode — it inherits this session).
+  (`docs/sessions/01-executor.md`, `02-code-reviewer.md`, or `03-qa-tester.md`); effort
+  cannot be enforced in this mode — it inherits this session.
 - Recommended: run THIS coordinator session on `opus` with `/effort high` — it cannot
   self-assign its own model or effort.
 
@@ -103,10 +104,11 @@ Use the Agent tool with `subagent_type: "orchestrator-reviewer"` and this prompt
 \```
 Review Batch N (Tasks X-Y).
 
-1. Run: git log --oneline -20 (to find the batch commits)
-2. Review per your checklist
-3. Run: {{VERIFICATION_COMMANDS_ONELINE}}
-4. Write the review report to `docs/reviews/YYYY-MM-DD-batch-N-review.md` and commit it
+Batch commits: [paste the commit hashes from the executor's output / progress.json `executor_commits`]
+
+1. Review the listed commits per your checklist (run git log --oneline -20 to cross-check nothing was missed)
+2. Run: {{VERIFICATION_COMMANDS_ONELINE}}
+3. Write the review report to `docs/reviews/YYYY-MM-DD-batch-N-review.md` and commit it
 {{EXTRA_REVIEW_SECTIONS}}
 
 Output your verdict and a summary of findings.
@@ -154,6 +156,32 @@ Run a full user-perspective test of all implemented features.
 All batches are complete. Write the QA report to `docs/qa/YYYY-MM-DD-full-qa.md`.
 
 Output: verdict (PASS/FAIL), number of tests, number of bugs found.
+\```
+
+### Dispatching Executor for QA Bug Fixes
+
+If QA returns FAIL (max 2 QA fix cycles), use the Agent tool with `subagent_type: "orchestrator-executor"` and this prompt:
+
+\```
+Fix the bugs from the QA report.
+
+QA report: `docs/qa/YYYY-MM-DD-full-qa.md`
+
+Fix all Critical and High severity bugs. After each fix, run: {{VERIFICATION_COMMANDS_ONELINE}}, then commit: "fix(scope): description of fix".
+
+When done, output list of fixed bugs with commit hashes.
+\```
+
+### Dispatching QA for Fix Verification
+
+Use the Agent tool with `subagent_type: "orchestrator-qa"` and this prompt:
+
+\```
+Verify that the fixes address the bugs in `docs/qa/YYYY-MM-DD-full-qa.md`.
+
+Re-run the reproduction steps for each reported bug, append a "Fix Verification" section to the report, update the verdict, and commit.
+
+Output your updated verdict (PASS/FAIL).
 \```
 
 ## Orchestration Logic
