@@ -96,16 +96,28 @@ Create all files in `<project-root>/docs/sessions/`:
 | `02-code-reviewer.md` | `reviewer-template.md` | Standalone reviewer for ad-hoc use |
 | `03-qa-tester.md` | `qa-template.md` | Standalone QA tester for ad-hoc use |
 | `progress.json` | `progress-template.json` | Initial state: batch 1, step execute |
+| `.claude/agents/orchestrator-{executor,reviewer,qa}.md` | `agent-definitions-template.md` | Subagent definitions with hard model/effort frontmatter |
+
+**Note:** the three agent-definition files go in `<project-root>/.claude/agents/`, not
+`docs/sessions/` — that is where the harness discovers custom subagent types.
 
 **When generating each file:**
 - Read the corresponding template for structure and format
 - Fill in project-specific content: project name, plan paths, batch order, rules, verification commands
 - Adapt dispatch prompts to the project's language/framework (Rust → cargo, JS → npm/bun, Python → pytest, etc.)
-- Substitute the per-role model, effort, and thinking-keyword placeholders from the Step 2.5 assignments
+- Substitute the per-role `{{ROLE_MODEL}}` / `{{ROLE_EFFORT}}` values from the Step 2.5
+  assignments into the agent-definition frontmatter and the assignment tables in
+  `orchestrator.md` and the standalone role files
+- Substitute `{{AUDIT_DEPTH}}` and `{{MAIN_BRANCH}}` (the repo's default branch, e.g.
+  `main` or `master`) in `orchestrator.md`
+- If the user chose **skip** for Final Audit, omit all audit content at generation time
+  per the generation notes in `orchestrator-template.md` and `resume-template.md` —
+  keep only the `audit_status` field in progress.json, with the rule that the
+  orchestrator sets it to `"SKIPPED"` when QA passes
 
 ### Step 4: Commit and Hand Off
 
-1. Commit all session files: `git add docs/sessions/ && git commit -m "docs: add orchestrator session files"`
+1. Commit all session files: `git add docs/sessions/ .claude/agents/ && git commit -m "docs: add orchestrator session files"`
 2. Tell the user:
 
 ```
@@ -135,6 +147,11 @@ After All Batches:
   QA (full test) → if FAIL: Executor (fix) → QA (verify) → loop (max 2)
     → if still FAIL after 2: STOP, ask user
     → if PASS: done
+
+After QA PASS:
+  Final Audit (/code-review on whole branch) → if Critical: Executor fix → re-audit (max 2)
+    → if still Critical after 2: STOP, ask user
+    → else: done (non-blocking findings → final-audit BACKLOG)
 ```
 
 ## Key Principles
@@ -144,3 +161,5 @@ After All Batches:
 - **Self-healing via progress.json** — the orchestrator can resume from any interruption
 - **Standalone role files are backup** — the orchestrator dispatches roles as subagents, but the standalone files let users run roles independently
 - **resume.md points to orchestrator.md** — keeps one source of truth for the pipeline rules
+- **Hard settings over imperatives** — model and effort live in agent-definition frontmatter enforced by the harness, not in prompt keywords
+- **Review the tests, not just the code** — the reviewer checklist targets test acceptance logic and doc claims, and the Final Audit re-checks the whole branch with fresh eyes
