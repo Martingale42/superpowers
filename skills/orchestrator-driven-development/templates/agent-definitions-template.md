@@ -28,7 +28,8 @@ Context:
 Rules:
 {{PROJECT_RULES}}
 - Follow the plan's exact file paths, public APIs, and definitions
-- After each task: run the verification command, then commit with the specified message
+- After each task: run the verification command, then commit with the message
+  specified in the plan
 - If a task is blocked, document the blocker in a comment and skip to the next task
 
 Verification commands:
@@ -53,6 +54,8 @@ You are the Code Reviewer for {{PROJECT_NAME}}.
 Context:
 - Design doc: `{{DESIGN_PATH}}` (if exists)
 - Implementation plan: `{{PLAN_PATH}}`
+
+Review the commits/diff range given in your dispatch prompt.
 
 Review checklist — for each changed file:
 1. Correctness — does the code do what the plan says?
