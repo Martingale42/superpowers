@@ -6,6 +6,44 @@ file is kept distinct so it never conflicts on an upstream merge.
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased] — 2026-06-12
+
+### Changed
+
+- **Per-role effort is now a hard setting for `orchestrator-driven-development`.**
+  Generation writes three subagent definitions — `.claude/agents/orchestrator-{executor,reviewer,qa}.md`
+  — whose frontmatter carries both model and `effort: low/medium/high/xhigh/max`, enforced
+  by the harness on every dispatch. The thinking-keyword mechanism from 2026-06-10 is
+  **removed**: `think`/`think hard` are no-ops in current Claude Code, and `ultrathink`
+  survives only as a user-facing one-shot toggle the pipeline does not use.
+  - Dispatch is via `subagent_type` with a documented three-tier fallback: agent
+    definition → Agent-tool `model` parameter + inlined standalone role file (effort
+    unenforced) → bare dispatch (pre-feature sessions).
+  - New defaults: Executor `sonnet`/high, Reviewer `opus`/xhigh, QA `sonnet`/high.
+  - Commits `2f1b6f6`, `f56857f`, `7fd3a76`, `a1e54a6`.
+
+### Added
+
+- **Final Audit gate.** After QA passes, the orchestrator runs `/code-review` over the
+  whole branch diff vs the default branch: Critical findings trigger executor fix cycles
+  (max 2), non-blocking findings land in a final-audit BACKLOG instead of blocking
+  completion. Depth is configurable (high / max / skip) via a fourth Step 2.5 question;
+  progress/resume gained the matching audit steps. Commits `a361225`, `5379334`, `a5105d9`.
+- **Reviewer checklist hardened 6 → 10** — new items target test acceptance logic,
+  generated-artifact doc sync, coverage vs the accepted domain, and quantitative claims.
+  Motivated by a post-hoc audit of an orchestrator-built feature that found **1 Critical
+  + 4 High** the pipeline missed — all in test tolerance logic and artifact docs.
+  Commit `cc82da4`.
+- New `templates/agent-definitions-template.md` (source for the three generated agent
+  files) and explicit QA fix-cycle dispatch blocks in the orchestrator template.
+  Commits `f56857f`, `58202a4`.
+
+### Docs
+
+- Design and implementation plan:
+  `docs/plans/2026-06-11-orchestrator-effort-review-redesign-design.md` and
+  `docs/plans/2026-06-11-orchestrator-effort-review-redesign.md`.
+
 ## [Unreleased] — 2026-06-10
 
 ### Added

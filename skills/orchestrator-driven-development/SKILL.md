@@ -1,6 +1,6 @@
 ---
 name: orchestrator-driven-development
-description: "Use when user picks orchestrator execution option after writing a plan. Generates session files (orchestrator, resume, executor, reviewer, QA, progress.json) in docs/sessions/ for a multi-agent pipeline with review gates and QA."
+description: "Use when user picks orchestrator execution option after writing a plan. Generates session files (orchestrator, resume, executor, reviewer, QA, progress.json) in docs/sessions/ plus subagent definitions in .claude/agents/ for a multi-agent pipeline with review gates, QA, and a final audit."
 ---
 
 # Orchestrator-Driven Development
@@ -121,7 +121,7 @@ Create all files in `<project-root>/docs/sessions/`:
 2. Tell the user:
 
 ```
-Session files generated in docs/sessions/.
+Session files generated in docs/sessions/; agent definitions in .claude/agents/.
 
 To start the orchestrator:
 1. Open a new Claude Code session in this project directory
