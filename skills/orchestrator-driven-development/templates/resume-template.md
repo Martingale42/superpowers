@@ -19,7 +19,15 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
 ## Recovery Steps
 
 1. **Read progress state:**
-   Read `docs/sessions/progress.json`. Note the `model_assignments` block — re-dispatch every role with the same `model` and prepend its `thinking` keyword to the dispatch prompt (a blank `thinking` means prepend nothing). Fallbacks if `model_assignments` is absent: (1) use the **Model & Effort Assignments** table in `orchestrator.md`; (2) if that table is also absent — a session generated before this feature existed — dispatch each role with **no `model` parameter and no thinking keyword**, i.e. the orchestrator session's own defaults.
+   Read `docs/sessions/progress.json`. Note `model_assignments`. To re-dispatch a role:
+   (1) If `.claude/agents/orchestrator-<role>.md` exists, dispatch with
+       `subagent_type: "orchestrator-<role>"` — model and effort are enforced by its
+       frontmatter.
+   (2) If the agent file is missing but `model_assignments` has the role, dispatch with
+       the Agent tool's `model` parameter and inline the role content from the standalone
+       role file (`docs/sessions/0N-*.md`); effort cannot be enforced in this mode.
+   (3) If neither exists (session generated before this feature), dispatch with no
+       `model` parameter — the session defaults.
 
 2. **Read the orchestrator rules:**
    Read `docs/sessions/orchestrator.md` for the full pipeline flow, dispatch templates, and orchestration logic. Follow those rules exactly.
@@ -45,6 +53,9 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
 | `qa` | QA was in progress. Check if QA report exists. If not, dispatch QA. |
 | `qa_fix` | QA bug fixes in progress. Check QA report for remaining bugs. Dispatch executor. |
 | `qa_verify` | QA re-verification. Dispatch QA to verify fixes. |
+| `final_audit` | Audit was in progress. Re-invoke `/code-review` (or the reviewer-audit fallback) on the whole branch. |
+| `audit_fix` | Audit fixes in progress. Check the final-audit report for unresolved Critical findings; dispatch executor. |
+| `audit_verify` | Re-run the audit to verify fixes (counts toward the 2-cycle cap). |
 | `done` | Everything is complete. Nothing to do. |
 
 7. **Resume the orchestration loop** from the determined point, following the rules in `docs/sessions/orchestrator.md`.
