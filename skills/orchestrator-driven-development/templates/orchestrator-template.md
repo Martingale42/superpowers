@@ -59,7 +59,26 @@ After ALL batches complete:
 │        → Repeat until PASS (max 2 cycles)            │
 │                                                      │
 └─────────────────────────────────────────────────────┘
+
+After QA passes:
+
+┌─────────────────────────────────────────────────────┐
+│              FINAL AUDIT {{AUDIT_DEPTH_NOTE}}        │
+│                                                      │
+│  Orchestrator invokes the /code-review skill in     │
+│  THIS session (whole feature-branch diff vs main,   │
+│  effort: {{AUDIT_DEPTH}})                            │
+│        ↓                                             │
+│  Critical findings:                                  │
+│        → Executor: fix → re-audit (max 2 cycles)    │
+│  Non-blocking findings:                              │
+│        → docs/reviews/YYYY-MM-DD-final-audit.md     │
+│          BACKLOG section                             │
+│                                                      │
+└─────────────────────────────────────────────────────┘
 \```
+
+(Generation note: replace `{{AUDIT_DEPTH_NOTE}}` with the chosen depth, e.g. `(depth: high)`. If the user chose **skip** for Final Audit in Step 2.5, omit this FINAL AUDIT box and every Final Audit section below entirely.)
 
 ## Batch Order
 
@@ -76,7 +95,7 @@ After ALL batches complete:
 | QA | `.claude/agents/orchestrator-qa.md` | {{QA_MODEL}} | {{QA_EFFORT}} |
 
 - Model AND effort are **hard settings** enforced by the agent definition's frontmatter —
-  dispatch with `subagent_type`, never prepend thinking keywords.
+  dispatch with `subagent_type`, never prepend `ultrathink`-style keyword toggles.
 - Executor-for-fixes uses the Executor agent; Reviewer-for-verify uses the Reviewer agent.
 - Fallback: if a `subagent_type` fails to resolve (agent file deleted), dispatch with the
   Agent tool's `model` parameter and inline the role content from the standalone role file
@@ -184,6 +203,43 @@ Re-run the reproduction steps for each reported bug, append a "Fix Verification"
 Output your updated verdict (PASS/FAIL).
 \```
 
+## Final Audit (after QA passes)
+
+This stage runs in THIS orchestrator session — it is NOT a subagent dispatch. A fresh
+whole-branch pass catches what per-batch reviews miss (cross-batch interactions, test
+acceptance logic, stale doc claims).
+
+1. **Run the audit**: invoke the `/code-review` skill (Skill tool) at effort
+   `{{AUDIT_DEPTH}}`, scoped to the **full feature-branch diff vs the main branch** —
+   not just the last batch.
+2. **Critical/P0 findings** → dispatch `subagent_type: "orchestrator-executor"` with
+   this prompt, then re-run the audit (max 2 audit fix cycles). Still failing after
+   2 cycles → STOP and ask the user.
+
+\```
+Fix the Critical findings from the final audit.
+
+Audit findings: [paste the Critical/P0 findings with file:line references]
+
+Fix all Critical findings. After each fix, run: {{VERIFICATION_COMMANDS_ONELINE}}, then commit: "fix(scope): description of fix".
+
+When done, output list of fixed findings with commit hashes.
+\```
+
+3. **Non-blocking findings** (High/Medium/Low that don't block merge) → write or append
+   `docs/reviews/YYYY-MM-DD-final-audit.md` with a `## BACKLOG` section listing them,
+   and commit it.
+
+**Fallback** — if the `/code-review` skill is unavailable in this session: dispatch
+`subagent_type: "orchestrator-reviewer"` with a whole-branch audit prompt covering the
+full diff vs main from multiple finder angles — algorithmic/mathematical correctness,
+test acceptance logic (tolerances, assertions that can't fail), documentation claims vs
+actual behavior, API contracts — and require per-finding adversarial verification
+(try to disprove each finding against the code) before reporting.
+
+**NEVER invoke `/code-review ultra`** — ultra is user-triggered and billed; the local
+depth cap for this audit is `max`.
+
 ## Orchestration Logic
 
 Implement this as a loop:
@@ -222,6 +278,19 @@ if qa_result.verdict == "FAIL":
     STOP — ask user for guidance
 
 print("ALL BATCHES COMPLETE + QA PASSED")
+
+# Final audit (skip if AUDIT_DEPTH == skip)
+audit_result = run_code_review_skill(scope="branch", effort=AUDIT_DEPTH)
+audit_attempts = 0
+while audit_result.has_critical and audit_attempts < 2:
+    dispatch_executor_fixes_from_audit(audit_result)
+    audit_result = run_code_review_skill(scope="branch", effort=AUDIT_DEPTH)
+    audit_attempts += 1
+if audit_result.has_critical:
+    STOP — ask user for guidance
+write_backlog(audit_result.non_blocking)
+
+print("FINAL AUDIT PASSED — pipeline complete")
 \```
 
 ## Important Rules
@@ -231,6 +300,8 @@ print("ALL BATCHES COMPLETE + QA PASSED")
 - **Read subagent output carefully** to determine next action
 - **Max 3 fix cycles per batch** — if review still fails after 3 rounds, stop and ask the user
 - **Max 2 QA fix cycles** — if QA still fails after 2 rounds, stop and ask the user
+- **Max 2 final-audit fix cycles** — if Critical findings persist after 2 rounds, stop and ask the user
+- **NEVER invoke `/code-review ultra`** — it is user-triggered and billed; the local audit depth cap is `max`
 - **Announce progress** between each step so the user can follow along:
   - "Starting Batch 1 execution..."
   - "Batch 1 execution complete. Starting review..."
@@ -241,16 +312,16 @@ print("ALL BATCHES COMPLETE + QA PASSED")
 
 ## Progress Tracking (Self-Healing)
 
-After EVERY step (execute, review, fix, verify, QA), update `docs/sessions/progress.json`:
+After EVERY step (execute, review, fix, verify, QA, audit), update `docs/sessions/progress.json`:
 
 \```json
 {
   "current_batch": 1,
   "current_step": "review",
   "model_assignments": {
-    "executor": {"model": "{{EXECUTOR_MODEL}}", "effort": "{{EXECUTOR_EFFORT}}", "thinking": "{{EXECUTOR_THINKING}}"},
-    "reviewer": {"model": "{{REVIEWER_MODEL}}", "effort": "{{REVIEWER_EFFORT}}", "thinking": "{{REVIEWER_THINKING}}"},
-    "qa":       {"model": "{{QA_MODEL}}",       "effort": "{{QA_EFFORT}}",       "thinking": "{{QA_THINKING}}"}
+    "executor": {"model": "{{EXECUTOR_MODEL}}", "effort": "{{EXECUTOR_EFFORT}}", "agent": "orchestrator-executor"},
+    "reviewer": {"model": "{{REVIEWER_MODEL}}", "effort": "{{REVIEWER_EFFORT}}", "agent": "orchestrator-reviewer"},
+    "qa":       {"model": "{{QA_MODEL}}",       "effort": "{{QA_EFFORT}}",       "agent": "orchestrator-qa"}
   },
   "step_detail": "Reviewer dispatched, awaiting result",
   "batches_completed": [],
@@ -266,6 +337,7 @@ After EVERY step (execute, review, fix, verify, QA), update `docs/sessions/progr
     "approved": false
   },
   "qa_status": null,
+  "audit_status": null,
   "last_updated": "YYYY-MM-DDTHH:MM:SSZ",
   "notes": "Any context needed for resume"
 }
@@ -274,9 +346,10 @@ After EVERY step (execute, review, fix, verify, QA), update `docs/sessions/progr
 **This file is your memory.** Always read it at session start. Always update it after each step. This enables a new session to resume seamlessly.
 
 ### Update rules:
-- `current_step` is one of: `execute`, `review`, `fix`, `fix_verify`, `qa`, `qa_fix`, `qa_verify`, `done`
+- `current_step` is one of: `execute`, `review`, `fix`, `fix_verify`, `qa`, `qa_fix`, `qa_verify`, `final_audit`, `audit_fix`, `audit_verify`, `done`
 - After batch approval: move batch from `batches_in_progress` to `batches_completed`, increment `current_batch`
 - After QA pass: set `qa_status` to `"PASS"`
+- After audit pass: set `audit_status` to `"PASS"` (or `"SKIPPED"` if the user chose skip)
 - Include commit hashes in `executor_commits` so reviewer knows what to diff
 
 ## Start
