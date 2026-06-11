@@ -69,72 +69,44 @@ After ALL batches complete:
 
 ## Model & Effort Assignments
 
-| Role | Model | Effort | Thinking keyword |
-|------|-------|--------|------------------|
-| Executor | {{EXECUTOR_MODEL}} | {{EXECUTOR_EFFORT}} | {{EXECUTOR_THINKING}} |
-| Reviewer | {{REVIEWER_MODEL}} | {{REVIEWER_EFFORT}} | {{REVIEWER_THINKING}} |
-| QA | {{QA_MODEL}} | {{QA_EFFORT}} | {{QA_THINKING}} |
+| Role | Agent definition | Model | Effort |
+|------|------------------|-------|--------|
+| Executor | `.claude/agents/orchestrator-executor.md` | {{EXECUTOR_MODEL}} | {{EXECUTOR_EFFORT}} |
+| Reviewer | `.claude/agents/orchestrator-reviewer.md` | {{REVIEWER_MODEL}} | {{REVIEWER_EFFORT}} |
+| QA | `.claude/agents/orchestrator-qa.md` | {{QA_MODEL}} | {{QA_EFFORT}} |
 
-- **Model is a hard setting** passed to the Agent tool's `model` parameter. **Effort is a soft lever** — the thinking keyword is prepended to the dispatch prompt to raise the reasoning budget (the Agent tool has no effort parameter).
-- Executor-for-fixes uses the Executor row; Reviewer-for-verify uses the Reviewer row.
-- Recommended: run THIS coordinator session on `opus` — it cannot self-assign its own model.
+- Model AND effort are **hard settings** enforced by the agent definition's frontmatter —
+  dispatch with `subagent_type`, never prepend thinking keywords.
+- Executor-for-fixes uses the Executor agent; Reviewer-for-verify uses the Reviewer agent.
+- Fallback: if a `subagent_type` fails to resolve (agent file deleted), dispatch with the
+  Agent tool's `model` parameter and inline the role content from the standalone role file
+  (effort cannot be enforced in this mode — it inherits this session).
+- Recommended: run THIS coordinator session on `opus` with `/effort high` — it cannot
+  self-assign its own model or effort.
 
 ## How to Dispatch Each Role
 
 ### Dispatching Executor
 
-Use the Agent tool with `model: {{EXECUTOR_MODEL}}` to spawn an executor subagent. Prepend `{{EXECUTOR_THINKING}}` to the prompt below (omit if blank), then provide it with:
+Use the Agent tool with `subagent_type: "orchestrator-executor"` and this prompt:
 
 \```
-You are the Executor for {{PROJECT_NAME}}. Implement Batch N (Tasks X-Y).
+Implement Batch N (Tasks X-Y).
 
-Context:
-- Read `{{PLAN_PATH}}` for detailed task specs
-- Read `{{DESIGN_PATH}}` for architecture context (if exists)
-
-Rules:
-{{PROJECT_RULES}}
-- Follow the plan's exact file paths, public APIs, and definitions
-- After each task: run the verification command, then commit with the specified message
-- If a task is blocked, document the blocker in a comment and skip to the next task
-
-Verification commands:
-{{VERIFICATION_COMMANDS}}
-
-When done, output:
-- List of completed tasks with commit hashes
-- List of any skipped/blocked tasks with reasons
-- Final test output
+Read `{{PLAN_PATH}}` for the task specs and `{{DESIGN_PATH}}` for architecture context (if exists) before starting.
 \```
 
 ### Dispatching Reviewer
 
-Use the Agent tool with `model: {{REVIEWER_MODEL}}` to spawn a reviewer subagent. Prepend `{{REVIEWER_THINKING}}` to the prompt below (omit if blank), then provide it with:
+Use the Agent tool with `subagent_type: "orchestrator-reviewer"` and this prompt:
 
 \```
-You are the Code Reviewer for {{PROJECT_NAME}}. Review Batch N (Tasks X-Y).
+Review Batch N (Tasks X-Y).
 
-Context:
-- Read `{{DESIGN_PATH}}` for expected APIs (if exists)
-- Read `{{PLAN_PATH}}` for task specs
-
-Process:
-1. Run: git log --oneline -20 (see batch commits)
-2. For each changed file, review for:
-   - Correctness (matches plan?)
-   - Error handling (errors have context, no silent failures)
-   - Security (injection, traversal, auth bypass)
-   - API conformance (matches design doc?)
-   - YAGNI (no over-engineering?)
+1. Run: git log --oneline -20 (to find the batch commits)
+2. Review per your checklist
 3. Run: {{VERIFICATION_COMMANDS_ONELINE}}
-4. Write review report to `docs/reviews/YYYY-MM-DD-batch-N-review.md`
-5. Commit the review report
-
-Report format:
-- Verdict: APPROVED / APPROVED WITH NOTES / CHANGES REQUESTED
-- Findings categorized as Critical / Important / Minor
-- Each finding has: [file:line] description
-- Verification results
+4. Write the review report to `docs/reviews/YYYY-MM-DD-batch-N-review.md` and commit it
 {{EXTRA_REVIEW_SECTIONS}}
 
 Output your verdict and a summary of findings.
@@ -142,31 +114,24 @@ Output your verdict and a summary of findings.
 
 ### Dispatching Executor for Fixes
 
-If the reviewer returns CHANGES REQUESTED, use the Agent tool with `model: {{EXECUTOR_MODEL}}` and prepend `{{EXECUTOR_THINKING}}` to the prompt below (omit if blank):
+If the reviewer returns CHANGES REQUESTED (max 3 fix cycles per batch), use the Agent tool with `subagent_type: "orchestrator-executor"` and this prompt:
 
 \```
-You are the Executor for {{PROJECT_NAME}}. Fix the issues from the Batch N code review.
+Fix the issues from the Batch N code review.
 
 Review report: `docs/reviews/YYYY-MM-DD-batch-N-review.md`
 
-Fix all Critical and Important issues listed in the review. For each fix:
-1. Read the finding
-2. Open the file, understand the context
-3. Fix the issue
-4. Run: {{VERIFICATION_COMMANDS_ONELINE}}
-5. Commit: "fix(scope): description of fix"
-
-Do NOT fix Minor issues unless trivial. Focus on correctness and security.
+Fix all Critical and Important issues listed in the review. Do NOT fix Minor issues unless trivial. After each fix, run: {{VERIFICATION_COMMANDS_ONELINE}}, then commit: "fix(scope): description of fix".
 
 When done, output list of fixed issues with commit hashes.
 \```
 
 ### Dispatching Reviewer for Fix Verification
 
-Use the Agent tool with `model: {{REVIEWER_MODEL}}` and prepend `{{REVIEWER_THINKING}}` to the prompt below (omit if blank).
+Use the Agent tool with `subagent_type: "orchestrator-reviewer"` and this prompt:
 
 \```
-You are the Code Reviewer for {{PROJECT_NAME}}. Verify that Batch N fixes address the review findings.
+Verify that the Batch N fixes address the review findings.
 
 Previous review: `docs/reviews/YYYY-MM-DD-batch-N-review.md`
 
@@ -181,26 +146,12 @@ Output your updated verdict.
 
 ### Dispatching QA (after all batches)
 
-Use the Agent tool with `model: {{QA_MODEL}}` and prepend `{{QA_THINKING}}` to the prompt below (omit if blank).
+Use the Agent tool with `subagent_type: "orchestrator-qa"` and this prompt (max 2 QA fix cycles):
 
 \```
-You are the QA Tester for {{PROJECT_NAME}}. Run a full user-perspective test of all implemented features.
+Run a full user-perspective test of all implemented features.
 
-Context:
-- Read `{{DESIGN_PATH}}` to understand user journeys (if exists)
-- Read `{{PLAN_PATH}}` to know what's implemented
-
-Process:
-1. Build and run existing tests: {{BUILD_AND_TEST_COMMAND}}
-2. {{QA_TEST_APPROACH}}
-3. Test edge cases: {{EDGE_CASES}}
-4. Write QA report to `docs/qa/YYYY-MM-DD-full-qa.md`
-5. Commit report and any test code
-
-Report format:
-- Test results table: Test | Input | Expected | Actual | Status
-- Bugs found with reproduction steps
-- Each bug has: severity, steps, expected, actual, code location
+All batches are complete. Write the QA report to `docs/qa/YYYY-MM-DD-full-qa.md`.
 
 Output: verdict (PASS/FAIL), number of tests, number of bugs found.
 \```
