@@ -1,10 +1,50 @@
 # Changelog
 
 Fork-specific changes for `Martingale42/superpowers` that are not (yet) in upstream
-`obra/superpowers`. Upstream releases are tracked separately in `RELEASE-NOTES.md`; this
+`obra/superpowers`. This branch (`fork-main`) is the working fork: it combines the
+**pragmatic-testing philosophy** (the `non-tdd` line) with **upstream v5.1.0**, merged in
+from the `main` base. Upstream releases are tracked separately in `RELEASE-NOTES.md`; this
 file is kept distinct so it never conflicts on an upstream merge.
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
+
+## [Unreleased] — 2026-06-16
+
+### Merged — `fork-main` = non-tdd philosophy + upstream v5.1.0
+
+Created `fork-main` by merging `main` (upstream v5.1.0 + the harness-neutral orchestrator)
+into the `non-tdd` pragmatic-testing fork. Resolution policy: **upstream-wins-on-structure,
+fork-wins-on-philosophy**.
+
+- **Adopted from upstream v5.1.0** (the fork held stale v4.3.1 copies): `using-git-worktrees`
+  (worktree data-loss/consent fixes #940/#991/#999/#238), `brainstorming` (zero-dependency
+  visual-companion server), subagent context isolation, `finishing-a-development-branch`,
+  `requesting-code-review` (named agent → `general-purpose`), `dispatching-parallel-agents`,
+  `using-superpowers` (+ harness reference files), multi-harness support, governance docs,
+  and release tooling (`bump-version.sh`).
+- **Kept from the fork (pragmatic philosophy):** `pragmatic-testing` (replaces
+  `test-driven-development`, which stays deleted with its anti-patterns reference),
+  `systematic-debugging` (TDD coupling removed), and the full
+  `orchestrator-driven-development` superset (per-role model/effort, `subagent_type`
+  dispatch, Final Audit gate, 10-item reviewer checklist, audit self-healing resume).
+- **Hand-merged (upstream structure + pragmatic content):**
+  - `README.md` — upstream's multi-harness install matrix + the fork's pragmatic workflow
+    lines and "Pragmatic Testing Approach" appendix.
+  - `writing-plans/SKILL.md` — upstream's File Structure / Scope Check / No Placeholders /
+    Self-Review sections + the fork's pragmatic task structure, "When to Include Tests"
+    table, and Task Types examples.
+  - `subagent-driven-development/SKILL.md` + `implementer-prompt.md` — upstream's Model
+    Selection, four-status protocol, Code-Organization and escalation sections + the fork's
+    pragmatic Testing Expectations (no rigid test-first).
+- **`writing-skills/SKILL.md`** kept at the fork's lean, 500-line-compliant version; upstream
+  never changed this skill in v5, so `main`'s 655-line copy is just the pre-fork, TDD-framed
+  original.
+- Plan path standardized on `docs/plans/`. The 8 files upstream deleted in v5 stay deleted
+  (`lib/skills-core.js`, `agents/code-reviewer.md`, `commands/*.md`, `.codex/INSTALL.md`,
+  `docs/README.codex.md`, `tests/opencode/test-skills-core.sh`).
+- **Deferred follow-up:** residual TDD wording in `using-superpowers` ("Rigid (TDD…)") and
+  `verification-before-completion` ("Red-Green") is shared from the merge base (not a
+  conflict) and left for a separate pragmatic-alignment pass.
 
 ## [Unreleased] — 2026-06-12
 

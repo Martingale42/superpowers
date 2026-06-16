@@ -17,6 +17,21 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
 
+## Scope Check
+
+If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
+
+## File Structure
+
+Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
+
+- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
+- You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
+- Files that change together should live together. Split by responsibility, not by technical layer.
+- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
+
+This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
+
 ## Bite-Sized Task Granularity
 
 **Each task is a focused unit of work (5-15 minutes):**
@@ -34,7 +49,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For Claude:** Use superpowers:executing-plans, superpowers:subagent-driven-development, or superpowers:orchestrator-driven-development to implement this plan.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task, or superpowers:orchestrator-driven-development for a stateful, resumable multi-session pipeline.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -200,6 +215,16 @@ git commit -m "refactor: extract common validation helpers"
 ```
 ````
 
+## No Placeholders
+
+Every task must contain the actual content an engineer needs. These are **plan failures** — never write them:
+- "TBD", "TODO", "implement later", "fill in details"
+- "Add appropriate error handling" / "add validation" / "handle edge cases"
+- "Write tests for the above" (without actual test code)
+- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
+- Tasks that describe what to do without showing how (code blocks required for code-bearing tasks)
+- References to types, functions, or methods not defined in any task
+
 ## Remember
 
 - Exact file paths always
@@ -208,6 +233,18 @@ git commit -m "refactor: extract common validation helpers"
 - Tests when they add value (not as ritual)
 - DRY, YAGNI, frequent commits
 - Reference relevant skills with explicit markers
+
+## Self-Review
+
+After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
+
+**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps.
+
+**2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
+
+**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
+
+If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
 ## Execution Handoff
 
