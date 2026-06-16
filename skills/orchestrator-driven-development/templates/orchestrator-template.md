@@ -59,6 +59,23 @@ After ALL batches complete:
 │        → Repeat until PASS (max 2 cycles)            │
 │                                                      │
 └─────────────────────────────────────────────────────┘
+
+After QA passes:
+
+┌─────────────────────────────────────────────────────┐
+│              FINAL AUDIT (depth: high)               │
+│                                                      │
+│  Orchestrator invokes the /code-review skill in      │
+│  THIS session (whole feature-branch diff vs the      │
+│  default branch, effort: high)                       │
+│        ↓                                             │
+│  Critical findings:                                  │
+│        → Executor: fix → re-audit (max 2 cycles)     │
+│  Non-blocking findings:                              │
+│        → docs/reviews/YYYY-MM-DD-final-audit.md      │
+│          BACKLOG section                             │
+│                                                      │
+└─────────────────────────────────────────────────────┘
 \```
 
 ## Batch Order
@@ -114,6 +131,10 @@ Process:
    - Security (injection, traversal, auth bypass)
    - API conformance (matches design doc?)
    - YAGNI (no over-engineering?)
+   - Test acceptance logic (tolerances/assertions: "what wrong implementation would still pass these tests?")
+   - Generated artifacts & doc sync (regenerated code AND its docs reflect the post-fix convention)
+   - Coverage domain vs accepted domain (tests cover the full input domain the API accepts)
+   - Quantitative claims (numeric precision/perf claims backed by a test or measurement in the diff)
 3. Run: {{VERIFICATION_COMMANDS_ONELINE}}
 4. Write review report to `docs/reviews/YYYY-MM-DD-batch-N-review.md`
 5. Commit the review report
@@ -189,6 +210,55 @@ Report format:
 Output: verdict (PASS/FAIL), number of tests, number of bugs found.
 \```
 
+### Dispatching Executor for QA Bug Fixes
+
+If QA returns FAIL (max 2 QA fix cycles), use the Agent tool to spawn an executor subagent:
+
+\```
+You are the Executor for {{PROJECT_NAME}}. Fix the bugs from the QA report.
+
+QA report: `docs/qa/YYYY-MM-DD-full-qa.md`
+
+Fix all Critical and High severity bugs. After each fix, run: {{VERIFICATION_COMMANDS_ONELINE}}, then commit: "fix(scope): description of fix".
+
+When done, output list of fixed bugs with commit hashes.
+\```
+
+### Dispatching QA for Fix Verification
+
+Use the Agent tool to spawn a QA subagent:
+
+\```
+You are the QA Tester for {{PROJECT_NAME}}. Verify that the fixes address the bugs in `docs/qa/YYYY-MM-DD-full-qa.md`.
+
+Re-run the reproduction steps for each reported bug, append a "Fix Verification" section to the report, update the verdict, and commit.
+
+Output your updated verdict (PASS/FAIL).
+\```
+
+## Final Audit (after QA passes)
+
+This stage runs in THIS orchestrator session — it is NOT a subagent dispatch. A fresh whole-branch pass catches what per-batch reviews miss (cross-batch interactions, test acceptance logic, stale doc claims).
+
+1. **Run the audit**: invoke the `/code-review` skill (Skill tool) at effort `high`, scoped to the **full feature-branch diff vs the default branch (`main`/`master`)** — not just the last batch. Record this step as `final_audit` in progress.json.
+2. **Critical/P0 findings** → dispatch an executor to fix (step `audit_fix`), then re-run the audit (step `audit_verify`; max 2 audit fix cycles). Still failing after 2 cycles → STOP and ask the user.
+
+\```
+You are the Executor for {{PROJECT_NAME}}. Fix the Critical findings from the final audit.
+
+Audit findings: [paste the Critical/P0 findings with file:line references]
+
+Fix all Critical findings. After each fix, run: {{VERIFICATION_COMMANDS_ONELINE}}, then commit: "fix(scope): description of fix".
+
+When done, output list of fixed findings with commit hashes.
+\```
+
+3. **Non-blocking findings** (High/Medium/Low that don't block merge) → write or append `docs/reviews/YYYY-MM-DD-final-audit.md` with a `## BACKLOG` section listing them, and commit it.
+
+**Fallback** — if the `/code-review` skill is unavailable in this session: spawn a reviewer subagent with a whole-branch audit prompt covering the full diff vs the default branch from multiple finder angles — algorithmic/mathematical correctness, test acceptance logic (tolerances, assertions that can't fail), documentation claims vs actual behavior, API contracts — and require per-finding adversarial verification (try to disprove each finding against the code) before reporting.
+
+**NEVER invoke `/code-review ultra`** — ultra is user-triggered and billed; the local depth cap for this audit is `max`.
+
 ## Orchestration Logic
 
 Implement this as a loop:
@@ -227,6 +297,19 @@ if qa_result.verdict == "FAIL":
     STOP — ask user for guidance
 
 print("ALL BATCHES COMPLETE + QA PASSED")
+
+# Final audit (runs in THIS session via the /code-review skill)
+audit_result = run_code_review_skill(scope="branch", effort="high")      # step: final_audit
+audit_attempts = 0
+while audit_result.has_critical and audit_attempts < 2:
+    dispatch_executor_fixes_from_audit(audit_result)                     # step: audit_fix
+    audit_result = run_code_review_skill(scope="branch", effort="high")  # step: audit_verify
+    audit_attempts += 1
+if audit_result.has_critical:
+    STOP — ask user for guidance
+write_backlog(audit_result.non_blocking)
+
+print("FINAL AUDIT PASSED — pipeline complete")
 \```
 
 ## Important Rules
@@ -236,6 +319,9 @@ print("ALL BATCHES COMPLETE + QA PASSED")
 - **Read subagent output carefully** to determine next action
 - **Max 3 fix cycles per batch** — if review still fails after 3 rounds, stop and ask the user
 - **Max 2 QA fix cycles** — if QA still fails after 2 rounds, stop and ask the user
+- **Max 2 final-audit fix cycles** — if Critical findings persist after 2 rounds, stop and ask the user
+- **NEVER invoke `/code-review ultra`** — it is user-triggered and billed; the local audit depth cap is `max`
+- **Do not rely on thinking keywords for effort** — `think`/`think hard` are no-ops in current Claude Code and `ultrathink` is a one-shot user toggle; do not prepend them to dispatch prompts. `ultracode` is a Claude Code session-only setting (xhigh + dynamic workflows), not an effort level — do not use it for roles, and do not run the orchestrator session under it (the coordinator should not spawn its own workflows).
 - **Announce progress** between each step so the user can follow along:
   - "Starting Batch 1 execution..."
   - "Batch 1 execution complete. Starting review..."
@@ -246,7 +332,7 @@ print("ALL BATCHES COMPLETE + QA PASSED")
 
 ## Progress Tracking (Self-Healing)
 
-After EVERY step (execute, review, fix, verify, QA), update `docs/sessions/progress.json`:
+After EVERY step (execute, review, fix, verify, QA, audit), update `docs/sessions/progress.json`:
 
 \```json
 {
@@ -266,6 +352,8 @@ After EVERY step (execute, review, fix, verify, QA), update `docs/sessions/progr
     "approved": false
   },
   "qa_status": null,
+  "audit_status": null,
+  "audit_attempts": 0,
   "last_updated": "YYYY-MM-DDTHH:MM:SSZ",
   "notes": "Any context needed for resume"
 }
@@ -274,9 +362,10 @@ After EVERY step (execute, review, fix, verify, QA), update `docs/sessions/progr
 **This file is your memory.** Always read it at session start. Always update it after each step. This enables a new session to resume seamlessly.
 
 ### Update rules:
-- `current_step` is one of: `execute`, `review`, `fix`, `fix_verify`, `qa`, `qa_fix`, `qa_verify`, `done`
+- `current_step` is one of: `execute`, `review`, `fix`, `fix_verify`, `qa`, `qa_fix`, `qa_verify`, `final_audit`, `audit_fix`, `audit_verify`, `done`
 - After batch approval: move batch from `batches_in_progress` to `batches_completed`, increment `current_batch`
 - After QA pass: set `qa_status` to `"PASS"`
+- Record the initial audit as `final_audit`, executor fixes as `audit_fix`, and each re-audit as `audit_verify`. Increment `audit_attempts` on each `audit_fix` cycle (it persists the 2-cycle cap across interruptions). After the audit passes: set `audit_status` to `"PASS"`
 - Include commit hashes in `executor_commits` so reviewer knows what to diff
 
 ## Start

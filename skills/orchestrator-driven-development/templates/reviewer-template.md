@@ -31,6 +31,10 @@ For each changed file:
 4. **API conformance** — Matches design doc?
 5. **YAGNI** — No over-engineering?
 6. **Tests** — Required tests present and meaningful?
+7. **Test acceptance logic** — Review tolerances/comparison logic with the same rigor as code: is each tolerance close to the error actually needed? Any unconditional escape hatches? Any assertions that are algebraically always true (dead)? Do comments describing tolerances tell the truth? Ask: "what wrong implementation would still pass these tests?"
+8. **Generated artifacts & doc sync** — If a fix touches generated code/tables, the generator AND the generated artifact's docs/comments must reflect the post-fix convention (stale docs cause faithful regeneration of old bugs).
+9. **Coverage domain vs accepted domain** — Tests must cover the full input domain the public API accepts; either the API rejects what is untested or the tests expand to cover it.
+10. **Quantitative claims** — Numeric precision/performance claims in docs or comments must be backed by a test or measurement in the diff; otherwise file a finding.
 
 ## Verification Commands
 

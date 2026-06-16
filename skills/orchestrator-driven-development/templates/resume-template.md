@@ -45,6 +45,9 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
 | `qa` | QA was in progress. Check if QA report exists. If not, dispatch QA. |
 | `qa_fix` | QA bug fixes in progress. Check QA report for remaining bugs. Dispatch executor. |
 | `qa_verify` | QA re-verification. Dispatch QA to verify fixes. |
+| `final_audit` | Audit was in progress. Re-invoke `/code-review` (or the reviewer-audit fallback) on the whole branch. |
+| `audit_fix` | Audit fixes in progress. Check the final-audit report for unresolved Critical findings; dispatch executor. |
+| `audit_verify` | Re-run the audit to verify fixes (counts toward the 2-cycle cap). |
 | `done` | Everything is complete. Nothing to do. |
 
 7. **Resume the orchestration loop** from the determined point, following the rules in `docs/sessions/orchestrator.md`.

@@ -1,6 +1,6 @@
 ---
 name: orchestrator-driven-development
-description: "Use when user picks orchestrator execution option after writing a plan. Generates session files (orchestrator, resume, executor, reviewer, QA, progress.json) in docs/sessions/ for a multi-agent pipeline with review gates and QA."
+description: "Use when user picks orchestrator execution option after writing a plan. Generates session files (orchestrator, resume, executor, reviewer, QA, progress.json) in docs/sessions/ for a multi-agent pipeline with review gates, QA, and a final audit."
 ---
 
 # Orchestrator-Driven Development
@@ -86,6 +86,11 @@ After All Batches:
   QA (full test) → if FAIL: Executor (fix) → QA (verify) → loop (max 2)
     → if still FAIL after 2: STOP, ask user
     → if PASS: done
+
+After QA PASS:
+  Final Audit (/code-review on whole branch) → if Critical: Executor fix → re-audit (max 2)
+    → if still Critical after 2: STOP, ask user
+    → else: done (non-blocking findings → final-audit BACKLOG)
 ```
 
 ## Key Principles
@@ -95,3 +100,4 @@ After All Batches:
 - **Self-healing via progress.json** — the orchestrator can resume from any interruption
 - **Standalone role files are backup** — the orchestrator dispatches roles as subagents, but the standalone files let users run roles independently
 - **resume.md points to orchestrator.md** — keeps one source of truth for the pipeline rules
+- **Review the tests, not just the code** — the reviewer checklist targets test acceptance logic and doc claims, and the Final Audit re-checks the whole branch with fresh eyes
