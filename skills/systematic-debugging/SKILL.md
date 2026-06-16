@@ -125,6 +125,26 @@ CAN skip test:
 | "Add null check everywhere" | Defensive noise | Fix why null appears |
 | "Revert and try again" | Loses information | Investigate first |
 
+## Debugging in Trading Systems / NautilusTrader / FFI
+
+| Symptom | Likely cause | Approach |
+|---------|--------------|----------|
+| Backtest result changes run-to-run | Unseeded RNG, dict/set iteration order, tie-breaking in event ordering | Pin seeds, sort event ties deterministically, diff two runs to find the first divergence |
+| Segfault / crash across the Rust↔Python boundary | Use-after-free, double-drop, panic unwinding across FFI | Run under ASAN/Valgrind; verify lifetimes (create → use → drop once); ensure panics abort, not unwind |
+| Live-feed test flaky, passes in isolation | Async race, arbitrary `sleep`, message-bus ordering | Use condition-based-waiting (below); assert on bus/cache state, not wall-clock timing |
+| Strategy fires wrong signal only on real data | Edge case present in market data but not in fixtures | Capture the offending bar/tick as a golden file, reproduce deterministically |
+
+For the async case, wait on a condition instead of a fixed delay:
+
+```python
+# ❌ arbitrary sleep — racy and slow
+time.sleep(2)
+assert strategy.position is not None
+
+# ✅ poll the condition with a bound
+await eventually(lambda: strategy.position is not None, timeout=2.0)
+```
+
 ## Bundled Techniques
 
 ### root-cause-tracing.md

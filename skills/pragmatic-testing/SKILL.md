@@ -124,6 +124,38 @@ Before writing a test, ask:
 | Complex test setup | Hard to maintain | Simplify or use fixtures |
 | Testing implementation details | Breaks on refactor | Test observable behavior |
 
+## Examples
+
+**Test behavior, not the mock** (the top anti-pattern, made concrete):
+
+```python
+# ❌ Asserts the mock was called — proves nothing about correctness
+def test_submit_order():
+    broker = Mock()
+    trader.submit(order, broker)
+    broker.place.assert_called_once_with(order)
+
+# ✅ Asserts the observable outcome via a real/fake collaborator
+def test_submit_order():
+    broker = FakeBroker()
+    trader.submit(order, broker)
+    assert broker.open_orders == [order]
+```
+
+**Property-based test for a position calculation** (mathematical invariant, per the Trading Systems table):
+
+```python
+from hypothesis import given, strategies as st
+
+@given(fills=st.lists(st.tuples(st.floats(-1e6, 1e6), st.floats(0, 1e6))))
+def test_net_position_equals_signed_sum(fills):
+    # Invariant: net position is the signed sum of fill quantities
+    pos = Position()
+    for qty, price in fills:
+        pos.apply(qty, price)
+    assert pos.net_qty == pytest.approx(sum(qty for qty, _ in fills))
+```
+
 ## When Someone Says "Write Tests First"
 
 This skill explicitly permits implementation before tests when:
@@ -137,19 +169,12 @@ After the code stabilizes, add tests for the parts worth keeping.
 
 ## Integration with Other Skills
 
-**When superpowers:writing-plans generates TDD steps:**
-- Reinterpret "Write failing test first" as "Implement, then test critical paths"
-- Keep the verification steps, but test after implementation
+This skill is the single source of truth for **when** to test; the others reference it.
 
-**When superpowers:systematic-debugging suggests "Write failing test first":**
-- Optional step, not mandatory
-- Prioritize understanding root cause first
-- Add regression test after fix is confirmed working
-
-**When superpowers:subagent-driven-development dispatches implementers:**
-- Subagents should follow pragmatic-testing, not TDD
-- Tests are expected for public APIs and critical paths
-- Exploratory tasks may defer testing
+- **superpowers:writing-plans** — already structures tasks as Implementation → Verification → Tests-if-applicable (not TDD steps). Use the MUST/CAN-defer/SKIP tiers above to set each task's `**Tests:**` annotation.
+- **superpowers:systematic-debugging** — owns the bug-fix flow; understand the root cause first, then decide the Phase 4 regression test by value (its decision tree mirrors the tiers above).
+- **superpowers:subagent-driven-development** — dispatched implementers follow these tiers: tests expected for public APIs and critical paths, exploratory tasks may defer with a documented reason.
+- **superpowers:verification-before-completion** — "tests pass" is a completion claim that needs fresh evidence, never "should pass".
 
 ## Verification Checklist
 
