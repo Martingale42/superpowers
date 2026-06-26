@@ -8,6 +8,23 @@ file is kept distinct so it never conflicts on an upstream merge.
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased] — 2026-06-26
+
+### Changed — orchestrator default dispatch + unified docs layout
+
+- **Agent-tool dispatch is now the only path.** The orchestrator dispatches each role with the
+  Agent tool's `model` parameter, prepending the standalone role file's body as the role
+  definition. The `.claude/agents/orchestrator-{executor,reviewer,qa}.md` generation and all
+  `subagent_type` dispatch are removed — they never resolved reliably in Claude Code.
+- **Per-role effort dropped.** The Agent tool has no effort parameter; subagents inherit the
+  orchestrator session's effort. Step 2.5 now collects per-role *model* only (plus Final Audit
+  depth). Recommend running the coordinator at `/effort high`.
+- **Unified doc layout** under `docs/superpowers/{plans,specs,sessions,reviews,qa}/`. Existing
+  `docs/plans/` and `docs/reviews/` relocated; `writing-plans` and `orchestrator-driven-development`
+  now emit the unified paths.
+- Removed `templates/agent-definitions-template.md`; `progress.json` `model_assignments` is
+  model-only.
+
 ## [Unreleased] — 2026-06-16
 
 ### Merged — `fork-main` = non-tdd philosophy + upstream v5.1.0
