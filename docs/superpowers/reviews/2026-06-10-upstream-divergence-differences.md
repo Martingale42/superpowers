@@ -38,7 +38,7 @@ Both are local additions; upstream never received them.
   does not exist in `upstream/main`.
 - Also edited `skills/writing-plans/SKILL.md` (+12) to add the orchestrator hand-off option.
 - **Now extended** by the 6 local commits for per-role model/effort (see the design/impl
-  docs under `docs/plans/2026-06-10-orchestrator-per-role-model-*.md`).
+  docs under `docs/superpowers/plans/2026-06-10-orchestrator-per-role-model-*.md`).
 
 ### A2. "Replace TDD with pragmatic-testing" — `adde5d4`
 Despite the subject, this is a **broad philosophy rewrite**, not a rename. It touched 9

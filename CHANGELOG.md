@@ -39,7 +39,7 @@ fork-wins-on-philosophy**.
 - **`writing-skills/SKILL.md`** kept at the fork's lean, 500-line-compliant version; upstream
   never changed this skill in v5, so `main`'s 655-line copy is just the pre-fork, TDD-framed
   original.
-- Plan path standardized on `docs/plans/`. The 8 files upstream deleted in v5 stay deleted
+- Plan path standardized on `docs/plans/` (later unified under `docs/superpowers/plans/`). The 8 files upstream deleted in v5 stay deleted
   (`lib/skills-core.js`, `agents/code-reviewer.md`, `commands/*.md`, `.codex/INSTALL.md`,
   `docs/README.codex.md`, `tests/opencode/test-skills-core.sh`).
 - **Deferred follow-up:** residual TDD wording in `using-superpowers` ("Rigid (TDD…)") and
@@ -81,8 +81,8 @@ fork-wins-on-philosophy**.
 ### Docs
 
 - Design and implementation plan:
-  `docs/plans/2026-06-11-orchestrator-effort-review-redesign-design.md` and
-  `docs/plans/2026-06-11-orchestrator-effort-review-redesign.md`.
+  `docs/superpowers/plans/2026-06-11-orchestrator-effort-review-redesign-design.md` and
+  `docs/superpowers/plans/2026-06-11-orchestrator-effort-review-redesign.md`.
 
 ## [Unreleased] — 2026-06-10
 
@@ -120,8 +120,8 @@ fork-wins-on-philosophy**.
 
 ### Docs
 
-- Design and implementation plan: `docs/plans/2026-06-10-orchestrator-per-role-model-{design,implementation}.md`.
-- **Upstream divergence review** (`docs/reviews/2026-06-10-upstream-*.md`): the fork is
+- Design and implementation plan: `docs/superpowers/plans/2026-06-10-orchestrator-per-role-model-{design,implementation}.md`.
+- **Upstream divergence review** (`docs/superpowers/reviews/2026-06-10-upstream-*.md`): the fork is
   155 commits / one major version behind upstream (`v4.3.1` vs `v5.1.0`). An isolated trial
   merge shows the update surfaces **exactly 5 conflicts**, all inside the local
   pragmatic-testing rewrite; fork-only skills are untouched. Recommendation: merge, with

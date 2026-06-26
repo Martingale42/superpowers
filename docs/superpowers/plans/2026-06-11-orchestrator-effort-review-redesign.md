@@ -4,7 +4,7 @@
 
 **Goal:** Replace the deprecated thinking-keyword effort mechanism with hard per-role `model`/`effort` via generated `.claude/agents/` definition files, harden the reviewer checklist (6→10 items), and add a Final Audit pipeline gate that invokes `/code-review`.
 
-**Architecture:** All changes live in `skills/orchestrator-driven-development/` (SKILL.md + 6 existing templates + 1 new template) plus a CHANGELOG entry. The skill is a generator: templates are structural guides that the skill instantiates per-project. Design doc: `docs/plans/2026-06-11-orchestrator-effort-review-redesign-design.md` — read it first; it contains the verified facts (Agent tool has no effort param; `.claude/agents/*.md` frontmatter `effort:` is a hard override; `think`/`think hard` are no-ops; `ultracode` is session-only and not an effort level).
+**Architecture:** All changes live in `skills/orchestrator-driven-development/` (SKILL.md + 6 existing templates + 1 new template) plus a CHANGELOG entry. The skill is a generator: templates are structural guides that the skill instantiates per-project. Design doc: `docs/superpowers/plans/2026-06-11-orchestrator-effort-review-redesign-design.md` — read it first; it contains the verified facts (Agent tool has no effort param; `.claude/agents/*.md` frontmatter `effort:` is a hard override; `think`/`think hard` are no-ops; `ultracode` is session-only and not an effort level).
 
 **Tech Stack:** Markdown templates, JSON template. No test suite — verification is `grep` consistency checks and JSON parsing via `uv run python`.
 
