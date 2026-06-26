@@ -15,7 +15,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Context:** This should be run in a dedicated worktree (created by brainstorming skill).
 
-**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 
 ## Scope Check
 
@@ -250,7 +250,7 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `docs/plans/<filename>.md`. Three execution options:**
+**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Three execution options:**
 
 **1. Subagent-Driven (this session)** — I dispatch fresh subagent per task, review between tasks, fast iteration
 
@@ -271,6 +271,6 @@ After saving the plan, offer execution choice:
 
 **If Orchestrator chosen:**
 - **REQUIRED SUB-SKILL:** Use superpowers:orchestrator-driven-development
-- Generates session files in `docs/sessions/` (orchestrator, resume, executor, reviewer, QA, progress.json)
+- Generates session files in `docs/superpowers/sessions/` (orchestrator, resume, executor, reviewer, QA, progress.json)
 - User opens new session with orchestrator.md as initial prompt
 - Orchestrator dispatches executor/reviewer/QA as subagents in a deterministic pipeline
