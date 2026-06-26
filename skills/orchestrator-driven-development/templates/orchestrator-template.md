@@ -1,6 +1,6 @@
 # Orchestrator Template
 
-Use this as the structural guide when generating `docs/sessions/orchestrator.md`. Fill in all `{{placeholders}}` with project-specific content.
+Use this as the structural guide when generating `docs/superpowers/sessions/orchestrator.md`. Fill in all `{{placeholders}}` with project-specific content.
 
 ---
 
@@ -72,7 +72,7 @@ After QA passes:
 │  Critical findings:                                  │
 │        → Executor: fix → re-audit (max 2 cycles)    │
 │  Non-blocking findings:                              │
-│        → docs/reviews/YYYY-MM-DD-final-audit.md     │
+│        → docs/superpowers/reviews/YYYY-MM-DD-final-audit.md │
 │          BACKLOG section                             │
 │                                                      │
 └─────────────────────────────────────────────────────┘
@@ -86,29 +86,27 @@ After QA passes:
 |-------|-------|-------|---------|
 {{BATCH_TABLE_ROWS}}
 
-## Model & Effort Assignments
+## Model Assignments
 
-| Role | Agent definition | Model | Effort |
-|------|------------------|-------|--------|
-| Executor | `.claude/agents/orchestrator-executor.md` | {{EXECUTOR_MODEL}} | {{EXECUTOR_EFFORT}} |
-| Reviewer | `.claude/agents/orchestrator-reviewer.md` | {{REVIEWER_MODEL}} | {{REVIEWER_EFFORT}} |
-| QA | `.claude/agents/orchestrator-qa.md` | {{QA_MODEL}} | {{QA_EFFORT}} |
+| Role | Role file | Model |
+|------|-----------|-------|
+| Executor | `docs/superpowers/sessions/01-executor.md` | {{EXECUTOR_MODEL}} |
+| Reviewer | `docs/superpowers/sessions/02-code-reviewer.md` | {{REVIEWER_MODEL}} |
+| QA | `docs/superpowers/sessions/03-qa-tester.md` | {{QA_MODEL}} |
 
-- Model AND effort are **hard settings** enforced by the agent definition's frontmatter —
-  dispatch with `subagent_type`, never prepend keyword effort toggles to prompts.
-- Executor-for-fixes uses the Executor agent; Reviewer-for-verify uses the Reviewer agent.
-- Fallback: if a `subagent_type` fails to resolve (agent file deleted), dispatch with the
-  Agent tool's `model` parameter and inline the role content from the standalone role file
-  (`docs/sessions/01-executor.md`, `02-code-reviewer.md`, or `03-qa-tester.md`); effort
-  cannot be enforced in this mode — it inherits this session.
-- Recommended: run THIS coordinator session on `opus` with `/effort high` — it cannot
-  self-assign its own model or effort.
+- Dispatch each role with the **Agent tool**: pass `model` from this table and build the
+  prompt by prepending the role file's full body to the task-specific instructions below.
+  There is no agent-definition file; pass only `model` and `prompt`.
+- **Effort** is not set per role — subagents inherit THIS session's effort. Run this
+  coordinator session at `/effort high` (recommended).
+- Executor-for-fixes uses the Executor model + role file; Reviewer-for-verify uses the
+  Reviewer's.
 
 ## How to Dispatch Each Role
 
 ### Dispatching Executor
 
-Use the Agent tool with `subagent_type: "orchestrator-executor"` and this prompt:
+Use the Agent tool with `model: {{EXECUTOR_MODEL}}`. Build the prompt by prepending the full body of `docs/superpowers/sessions/01-executor.md`, then appending:
 
 \```
 Implement Batch N (Tasks X-Y).
@@ -118,7 +116,7 @@ Read `{{PLAN_PATH}}` for the task specs and `{{DESIGN_PATH}}` for architecture c
 
 ### Dispatching Reviewer
 
-Use the Agent tool with `subagent_type: "orchestrator-reviewer"` and this prompt:
+Use the Agent tool with `model: {{REVIEWER_MODEL}}`. Build the prompt by prepending the full body of `docs/superpowers/sessions/02-code-reviewer.md`, then appending:
 
 \```
 Review Batch N (Tasks X-Y).
@@ -127,7 +125,7 @@ Batch commits: [paste the commit hashes from the executor's output / progress.js
 
 1. Review the listed commits per your checklist (run git log --oneline -20 to cross-check nothing was missed)
 2. Run: {{VERIFICATION_COMMANDS_ONELINE}}
-3. Write the review report to `docs/reviews/YYYY-MM-DD-batch-N-review.md` and commit it
+3. Write the review report to `docs/superpowers/reviews/YYYY-MM-DD-batch-N-review.md` and commit it
 {{EXTRA_REVIEW_SECTIONS}}
 
 Output your verdict and a summary of findings.
@@ -135,12 +133,12 @@ Output your verdict and a summary of findings.
 
 ### Dispatching Executor for Fixes
 
-If the reviewer returns CHANGES REQUESTED (max 3 fix cycles per batch), use the Agent tool with `subagent_type: "orchestrator-executor"` and this prompt:
+If the reviewer returns CHANGES REQUESTED (max 3 fix cycles per batch), use the Agent tool with `model: {{EXECUTOR_MODEL}}`. Build the prompt by prepending the full body of `docs/superpowers/sessions/01-executor.md`, then appending:
 
 \```
 Fix the issues from the Batch N code review.
 
-Review report: `docs/reviews/YYYY-MM-DD-batch-N-review.md`
+Review report: `docs/superpowers/reviews/YYYY-MM-DD-batch-N-review.md`
 
 Fix all Critical and Important issues listed in the review. Do NOT fix Minor issues unless trivial. After each fix, run: {{VERIFICATION_COMMANDS_ONELINE}}, then commit: "fix(scope): description of fix".
 
@@ -149,12 +147,12 @@ When done, output list of fixed issues with commit hashes.
 
 ### Dispatching Reviewer for Fix Verification
 
-Use the Agent tool with `subagent_type: "orchestrator-reviewer"` and this prompt:
+Use the Agent tool with `model: {{REVIEWER_MODEL}}`. Build the prompt by prepending the full body of `docs/superpowers/sessions/02-code-reviewer.md`, then appending:
 
 \```
 Verify that the Batch N fixes address the review findings.
 
-Previous review: `docs/reviews/YYYY-MM-DD-batch-N-review.md`
+Previous review: `docs/superpowers/reviews/YYYY-MM-DD-batch-N-review.md`
 
 1. Check each Critical/Important finding — is it actually fixed?
 2. Run: {{VERIFICATION_COMMANDS_ONELINE}}
@@ -167,24 +165,24 @@ Output your updated verdict.
 
 ### Dispatching QA (after all batches)
 
-Use the Agent tool with `subagent_type: "orchestrator-qa"` and this prompt (max 2 QA fix cycles):
+Use the Agent tool with `model: {{QA_MODEL}}`. Build the prompt by prepending the full body of `docs/superpowers/sessions/03-qa-tester.md`, then appending (max 2 QA fix cycles):
 
 \```
 Run a full user-perspective test of all implemented features.
 
-All batches are complete. Write the QA report to `docs/qa/YYYY-MM-DD-full-qa.md`.
+All batches are complete. Write the QA report to `docs/superpowers/qa/YYYY-MM-DD-full-qa.md`.
 
 Output: verdict (PASS/FAIL), number of tests, number of bugs found.
 \```
 
 ### Dispatching Executor for QA Bug Fixes
 
-If QA returns FAIL (max 2 QA fix cycles), use the Agent tool with `subagent_type: "orchestrator-executor"` and this prompt:
+If QA returns FAIL (max 2 QA fix cycles), use the Agent tool with `model: {{EXECUTOR_MODEL}}`. Build the prompt by prepending the full body of `docs/superpowers/sessions/01-executor.md`, then appending:
 
 \```
 Fix the bugs from the QA report.
 
-QA report: `docs/qa/YYYY-MM-DD-full-qa.md`
+QA report: `docs/superpowers/qa/YYYY-MM-DD-full-qa.md`
 
 Fix all Critical and High severity bugs. After each fix, run: {{VERIFICATION_COMMANDS_ONELINE}}, then commit: "fix(scope): description of fix".
 
@@ -193,10 +191,10 @@ When done, output list of fixed bugs with commit hashes.
 
 ### Dispatching QA for Fix Verification
 
-Use the Agent tool with `subagent_type: "orchestrator-qa"` and this prompt:
+Use the Agent tool with `model: {{QA_MODEL}}`. Build the prompt by prepending the full body of `docs/superpowers/sessions/03-qa-tester.md`, then appending:
 
 \```
-Verify that the fixes address the bugs in `docs/qa/YYYY-MM-DD-full-qa.md`.
+Verify that the fixes address the bugs in `docs/superpowers/qa/YYYY-MM-DD-full-qa.md`.
 
 Re-run the reproduction steps for each reported bug, append a "Fix Verification" section to the report, update the verdict, and commit.
 
@@ -214,7 +212,7 @@ acceptance logic, stale doc claims).
    not just the last batch. Example invocation:
    `Skill: code-review, args: "{{AUDIT_DEPTH}} — review the full feature-branch diff vs {{MAIN_BRANCH}}"`.
    Record this step as `final_audit` in progress.json.
-2. **Critical/P0 findings** → dispatch `subagent_type: "orchestrator-executor"` with
+2. **Critical/P0 findings** → dispatch with the Agent tool (`model: {{EXECUTOR_MODEL}}`, prompt prepended with `docs/superpowers/sessions/01-executor.md`) with
    this prompt (step `audit_fix`), then re-run the audit (step `audit_verify`; max 2
    audit fix cycles). Still failing after 2 cycles → STOP and ask the user.
 
@@ -229,16 +227,14 @@ When done, output list of fixed findings with commit hashes.
 \```
 
 3. **Non-blocking findings** (High/Medium/Low that don't block merge) → write or append
-   `docs/reviews/YYYY-MM-DD-final-audit.md` with a `## BACKLOG` section listing them,
+   `docs/superpowers/reviews/YYYY-MM-DD-final-audit.md` with a `## BACKLOG` section listing them,
    and commit it.
 
-**Fallback** — if the `/code-review` skill is unavailable in this session: dispatch
-`subagent_type: "orchestrator-reviewer"` with a whole-branch audit prompt covering the
+**Fallback** — if the `/code-review` skill is unavailable in this session: dispatch with the Agent tool (`model: {{REVIEWER_MODEL}}`, prompt prepended with `docs/superpowers/sessions/02-code-reviewer.md`) with a whole-branch audit prompt covering the
 full diff vs `{{MAIN_BRANCH}}` from multiple finder angles — algorithmic/mathematical correctness,
 test acceptance logic (tolerances, assertions that can't fail), documentation claims vs
 actual behavior, API contracts — and require per-finding adversarial verification
-(try to disprove each finding against the code) before reporting. Note: in fallback mode
-the audit runs at the Reviewer's frontmatter effort, not `{{AUDIT_DEPTH}}`.
+(try to disprove each finding against the code) before reporting.
 
 **NEVER invoke `/code-review ultra`** — ultra is user-triggered and billed; the local
 depth cap for this audit is `max`.
@@ -315,16 +311,16 @@ print("FINAL AUDIT PASSED — pipeline complete")
 
 ## Progress Tracking (Self-Healing)
 
-After EVERY step (execute, review, fix, verify, QA, audit), update `docs/sessions/progress.json`:
+After EVERY step (execute, review, fix, verify, QA, audit), update `docs/superpowers/sessions/progress.json`:
 
 \```json
 {
   "current_batch": 1,
   "current_step": "review",
   "model_assignments": {
-    "executor": {"model": "{{EXECUTOR_MODEL}}", "effort": "{{EXECUTOR_EFFORT}}", "agent": "orchestrator-executor"},
-    "reviewer": {"model": "{{REVIEWER_MODEL}}", "effort": "{{REVIEWER_EFFORT}}", "agent": "orchestrator-reviewer"},
-    "qa":       {"model": "{{QA_MODEL}}",       "effort": "{{QA_EFFORT}}",       "agent": "orchestrator-qa"}
+    "executor": {"model": "{{EXECUTOR_MODEL}}"},
+    "reviewer": {"model": "{{REVIEWER_MODEL}}"},
+    "qa":       {"model": "{{QA_MODEL}}"}
   },
   "step_detail": "Reviewer dispatched, awaiting result",
   "batches_completed": [],
@@ -361,7 +357,7 @@ After EVERY step (execute, review, fix, verify, QA, audit), update `docs/session
 
 ## Start
 
-1. Check if `docs/sessions/progress.json` exists
+1. Check if `docs/superpowers/sessions/progress.json` exists
    - If YES: read it and **resume from where it left off** (this is a self-healing restart)
    - If NO: create it, start fresh with Batch 1
 2. Read the implementation plan
