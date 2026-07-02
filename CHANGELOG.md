@@ -8,6 +8,54 @@ file is kept distinct so it never conflicts on an upstream merge.
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased] — 2026-07-03
+
+### Added — live done-signal gate after the final audit (orchestrator + writing-plans)
+
+Lesson from a real milestone: its only end-to-end test was env-gated (`#[ignore]`),
+every offline gate was green, and the headline feature shipped compiled-but-never-executed.
+The pipeline had silently promoted "missing env is a SKIP" (a test-layer convention)
+into "offline green = done" (a completion definition). Fixes, in layers:
+
+- **`writing-plans`**: plan header gains a **Done signal** field (acceptance command(s),
+  env-gated ones marked with their env needs). New rule: an env-gated done signal MUST
+  come with an *offline rehearsal* task (externals stubbed, real entry point exercised) —
+  the live run validates the environment, never the wiring.
+- **`orchestrator-driven-development` QA role**: runs the offline done-signal rehearsal as
+  part of full QA (a rehearsal failure is a FAIL, not a skip); verdict vocabulary gains
+  `OFFLINE-PASS-LIVE-PENDING`, which explicitly does NOT satisfy the live gate.
+- **`orchestrator-driven-development` pipeline**: new **LIVE GATE** stage after the final
+  audit (generated only when the plan declares an env-gated done signal). Env preflight
+  runs at session start (user prepares env in parallel with the batches) and again at the
+  gate. The orchestrator opens a **draft PR** after the audit; the PR leaves draft only on
+  gate PASS or an explicit, reason-recorded user waiver (`live_gate_status:
+  "WAIVED: <reason>"`, disclosed in the PR body and final summary). Gate failures are
+  triaged env-vs-code; code defects get max 2 executor fix cycles (env failures don't
+  count); exhaustion triggers a **Live-Gate Exhaustion SOP** — freeze
+  (`"BLOCKED: <report>"`, PR stays draft), immutable failure report, backlog row, then a
+  STOP with a 4-option user menu (extend / escalate-to-plan / waive / park). A resumed
+  session that finds BLOCKED re-presents the menu instead of retrying. progress.json gains
+  `live_gate_status` / `live_gate_attempts`; `current_step` gains
+  `live_gate` / `live_fix` / `live_verify`. Core principle now stated in both skills:
+  **SKIP ≠ PASS** — tests may skip on missing env; the pipeline may not.
+
+## [Unreleased] — 2026-06-26
+
+### Changed — orchestrator default dispatch + unified docs layout
+
+- **Agent-tool dispatch is now the only path.** The orchestrator dispatches each role with the
+  Agent tool's `model` parameter, prepending the standalone role file's body as the role
+  definition. The `.claude/agents/orchestrator-{executor,reviewer,qa}.md` generation and all
+  `subagent_type` dispatch are removed — they never resolved reliably in Claude Code.
+- **Per-role effort dropped.** The Agent tool has no effort parameter; subagents inherit the
+  orchestrator session's effort. Step 2.5 now collects per-role *model* only (plus Final Audit
+  depth). Recommend running the coordinator at `/effort high`.
+- **Unified doc layout** under `docs/superpowers/{plans,specs,sessions,reviews,qa}/`. Existing
+  `docs/plans/` and `docs/reviews/` relocated; `writing-plans` and `orchestrator-driven-development`
+  now emit the unified paths.
+- Removed `templates/agent-definitions-template.md`; `progress.json` `model_assignments` is
+  model-only.
+
 ## [Unreleased] — 2026-06-16
 
 ### Merged — `fork-main` = non-tdd philosophy + upstream v5.1.0
@@ -39,7 +87,7 @@ fork-wins-on-philosophy**.
 - **`writing-skills/SKILL.md`** kept at the fork's lean, 500-line-compliant version; upstream
   never changed this skill in v5, so `main`'s 655-line copy is just the pre-fork, TDD-framed
   original.
-- Plan path standardized on `docs/plans/`. The 8 files upstream deleted in v5 stay deleted
+- Plan path standardized on `docs/plans/` (later unified under `docs/superpowers/plans/`). The 8 files upstream deleted in v5 stay deleted
   (`lib/skills-core.js`, `agents/code-reviewer.md`, `commands/*.md`, `.codex/INSTALL.md`,
   `docs/README.codex.md`, `tests/opencode/test-skills-core.sh`).
 - **Deferred follow-up:** residual TDD wording in `using-superpowers` ("Rigid (TDD…)") and
@@ -81,8 +129,8 @@ fork-wins-on-philosophy**.
 ### Docs
 
 - Design and implementation plan:
-  `docs/plans/2026-06-11-orchestrator-effort-review-redesign-design.md` and
-  `docs/plans/2026-06-11-orchestrator-effort-review-redesign.md`.
+  `docs/superpowers/plans/2026-06-11-orchestrator-effort-review-redesign-design.md` and
+  `docs/superpowers/plans/2026-06-11-orchestrator-effort-review-redesign.md`.
 
 ## [Unreleased] — 2026-06-10
 
@@ -120,8 +168,8 @@ fork-wins-on-philosophy**.
 
 ### Docs
 
-- Design and implementation plan: `docs/plans/2026-06-10-orchestrator-per-role-model-{design,implementation}.md`.
-- **Upstream divergence review** (`docs/reviews/2026-06-10-upstream-*.md`): the fork is
+- Design and implementation plan: `docs/superpowers/plans/2026-06-10-orchestrator-per-role-model-{design,implementation}.md`.
+- **Upstream divergence review** (`docs/superpowers/reviews/2026-06-10-upstream-*.md`): the fork is
   155 commits / one major version behind upstream (`v4.3.1` vs `v5.1.0`). An isolated trial
   merge shows the update surfaces **exactly 5 conflicts**, all inside the local
   pragmatic-testing rewrite; fork-only skills are untouched. Recommendation: merge, with

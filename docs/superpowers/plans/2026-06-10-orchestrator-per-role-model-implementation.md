@@ -8,7 +8,7 @@
 
 **Tech Stack:** Markdown skill + templates. No runnable code, no dependencies.
 
-**Design doc:** `docs/plans/2026-06-10-orchestrator-per-role-model-design.md`
+**Design doc:** `docs/superpowers/plans/2026-06-10-orchestrator-per-role-model-design.md`
 
 **Base dir for all paths below:** `skills/orchestrator-driven-development/`
 

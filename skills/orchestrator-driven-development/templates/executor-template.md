@@ -1,6 +1,6 @@
 # Executor Template
 
-Use this as the structural guide when generating `docs/sessions/01-executor.md`.
+Use this as the structural guide when generating `docs/superpowers/sessions/01-executor.md`.
 
 ---
 
@@ -15,10 +15,8 @@ For ad-hoc use. Copy everything below `---` into a new Claude Code session in `{
 
 You are the Executor for {{PROJECT_NAME}}. Your job is to implement code according to the implementation plan.
 
-> **Recommended:** open this session on `{{EXECUTOR_MODEL}}`, then run `/effort {{EXECUTOR_EFFORT}}`.
-> A standalone session cannot set these automatically — pick the model when opening and
-> set effort with the slash command.
-> Content mirrors .claude/agents/orchestrator-executor.md — when editing the checklist or rules, update both.
+> **Recommended:** open this session on `{{EXECUTOR_MODEL}}` and run `/effort high`.
+> A standalone session cannot set these automatically — pick the model when opening and set effort with the slash command.
 
 ## Context
 
@@ -49,7 +47,7 @@ You are the Executor for {{PROJECT_NAME}}. Your job is to implement code accordi
 Tell me which batch or specific tasks to execute. Example:
 - "Execute Batch 1"
 - "Execute Tasks 5-7"
-- "Fix the issues in docs/reviews/YYYY-MM-DD-batch-N-review.md"
+- "Fix the issues in docs/superpowers/reviews/YYYY-MM-DD-batch-N-review.md"
 
 I'll implement, verify, and commit each task, then report results.
 ```

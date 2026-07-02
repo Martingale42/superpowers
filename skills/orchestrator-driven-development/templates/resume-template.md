@@ -1,6 +1,6 @@
 # Resume Template
 
-Use this as the structural guide when generating `docs/sessions/resume.md`. Fill in all `{{placeholders}}` with project-specific content.
+Use this as the structural guide when generating `docs/superpowers/sessions/resume.md`. Fill in all `{{placeholders}}` with project-specific content.
 
 ---
 
@@ -19,19 +19,15 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
 ## Recovery Steps
 
 1. **Read progress state:**
-   Read `docs/sessions/progress.json`. Note `model_assignments`. To re-dispatch a role:
-   (1) If `.claude/agents/orchestrator-<role>.md` exists, dispatch with
-       `subagent_type: "orchestrator-<role>"` — model and effort are enforced by its
-       frontmatter.
-   (2) If the agent file is missing but `model_assignments` has the role, dispatch with
-       the Agent tool's `model` parameter and inline the role content from the standalone
-       role file (`docs/sessions/01-executor.md`, `02-code-reviewer.md`, or
-       `03-qa-tester.md`); effort cannot be enforced in this mode.
-   (3) If neither exists (session generated before this feature), dispatch with no
-       `model` parameter — the session defaults.
+   Read `docs/superpowers/sessions/progress.json`. Note `model_assignments`. To re-dispatch a
+   role, use the Agent tool with `model` = `model_assignments.<role>.model`, building the prompt
+   by prepending the full body of the role file (`docs/superpowers/sessions/01-executor.md`,
+   `02-code-reviewer.md`, or `03-qa-tester.md`) to the task instructions. Effort is inherited
+   from this session. If `model_assignments` has no model for a role, dispatch with no `model`
+   parameter (session default).
 
 2. **Read the orchestrator rules:**
-   Read `docs/sessions/orchestrator.md` for the full pipeline flow, dispatch templates, and orchestration logic. Follow those rules exactly.
+   Read `docs/superpowers/sessions/orchestrator.md` for the full pipeline flow, dispatch templates, and orchestration logic. Follow those rules exactly.
 
 3. **Read the plans** (for context):
    - `{{PLAN_PATH}}`
@@ -41,7 +37,7 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
    `git log --oneline -30`
 
 5. **Read any existing review/QA reports:**
-   `ls docs/reviews/ docs/qa/ 2>/dev/null`
+   `ls docs/superpowers/reviews/ docs/superpowers/qa/ 2>/dev/null`
 
 6. **Determine where to resume** based on `progress.json`:
 
@@ -57,14 +53,19 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
 | `final_audit` | Audit was in progress. Re-invoke `/code-review` (or the reviewer-audit fallback) on the whole branch. |
 | `audit_fix` | Audit fixes in progress. Check the final-audit report for unresolved Critical findings; dispatch executor. |
 | `audit_verify` | Re-run the audit to verify fixes (counts toward the 2-cycle cap). |
+| `live_gate` | Live gate in progress. Check `live_gate_status` FIRST: `"BLOCKED: …"` → re-present the Live-Gate Exhaustion SOP menu from orchestrator.md (extend / escalate-to-plan / waive / park) — do NOT silently retry. Otherwise: verify the draft PR exists (create if missing), re-run the env preflight, and run the gate per orchestrator.md. |
+| `live_fix` | Live-gate fixes in progress. Check git log for fix commits since the last gate failure; dispatch executor for the remaining root cause, then re-run the gate. |
+| `live_verify` | Re-run the done signal (counts toward the 2-cycle cap via `live_gate_attempts`; env/infra failures don't count). |
 | `done` | Everything is complete. Nothing to do. |
 
 (Generation note: if the user chose **skip** for Final Audit in Step 2.5, omit the
-`final_audit` / `audit_fix` / `audit_verify` rows to match the generated orchestrator.md.)
+`final_audit` / `audit_fix` / `audit_verify` rows to match the generated orchestrator.md.
+If the plan declares no env-gated done signal, likewise omit the `live_gate` /
+`live_fix` / `live_verify` rows.)
 
-7. **Resume the orchestration loop** from the determined point, following the rules in `docs/sessions/orchestrator.md`.
+7. **Resume the orchestration loop** from the determined point, following the rules in `docs/superpowers/sessions/orchestrator.md`.
 
 ## Start
 
-Read `docs/sessions/progress.json`, then read `docs/sessions/orchestrator.md`. Determine current state, announce where you're resuming from, and continue the pipeline.
+Read `docs/superpowers/sessions/progress.json`, then read `docs/superpowers/sessions/orchestrator.md`. Determine current state, announce where you're resuming from, and continue the pipeline.
 ```

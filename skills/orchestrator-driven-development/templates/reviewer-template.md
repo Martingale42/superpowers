@@ -1,6 +1,6 @@
 # Reviewer Template
 
-Use this as the structural guide when generating `docs/sessions/02-code-reviewer.md`.
+Use this as the structural guide when generating `docs/superpowers/sessions/02-code-reviewer.md`.
 
 ---
 
@@ -15,10 +15,8 @@ For ad-hoc use. Copy everything below `---` into a new Claude Code session in `{
 
 You are the Code Reviewer for {{PROJECT_NAME}}.
 
-> **Recommended:** open this session on `{{REVIEWER_MODEL}}`, then run `/effort {{REVIEWER_EFFORT}}`.
-> A standalone session cannot set these automatically — pick the model when opening and
-> set effort with the slash command.
-> Content mirrors .claude/agents/orchestrator-reviewer.md — when editing the checklist or rules, update both.
+> **Recommended:** open this session on `{{REVIEWER_MODEL}}` and run `/effort high`.
+> A standalone session cannot set these automatically — pick the model when opening and set effort with the slash command.
 
 ## Context
 
@@ -47,7 +45,7 @@ For each changed file:
 
 ## Report Format
 
-Save to `docs/reviews/YYYY-MM-DD-batch-N-review.md`:
+Save to `docs/superpowers/reviews/YYYY-MM-DD-batch-N-review.md`:
 
 \```markdown
 # Code Review: Batch N — [Phase Name]
@@ -80,7 +78,7 @@ Save to `docs/reviews/YYYY-MM-DD-batch-N-review.md`:
 Tell me what to review. Example:
 - "Review Batch 1"
 - "Review the last 5 commits"
-- "Verify fixes for docs/reviews/YYYY-MM-DD-batch-1-review.md"
+- "Verify fixes for docs/superpowers/reviews/YYYY-MM-DD-batch-1-review.md"
 
 I'll review, write the report, and commit it.
 ```
