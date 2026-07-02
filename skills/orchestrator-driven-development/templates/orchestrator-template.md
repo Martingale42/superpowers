@@ -76,7 +76,35 @@ After QA passes:
 │          BACKLOG section                             │
 │                                                      │
 └─────────────────────────────────────────────────────┘
+
+After the final audit passes:
+
+┌─────────────────────────────────────────────────────┐
+│           LIVE GATE (done-signal, human env)         │
+│                                                      │
+│  Open a DRAFT PR, then preflight the live env:       │
+│  {{LIVE_ENV_REQUIREMENTS}}                           │
+│        ↓                                             │
+│  Env ready → run {{DONE_SIGNAL_COMMANDS}}            │
+│     PASS → flip PR to ready — pipeline complete      │
+│     FAIL → triage (env vs code) → Executor fix       │
+│             → re-run gate (max 2 code-fix cycles)    │
+│     still FAIL → Live-Gate Exhaustion SOP (STOP)     │
+│  Env missing → STOP and ask the user:                │
+│     (a) provide env → run the gate                   │
+│     (b) explicit waiver → record + flip PR to ready  │
+│                                                      │
+│  The PR stays DRAFT until the gate passes or the     │
+│  user records a waiver — SKIP is never PASS          │
+└─────────────────────────────────────────────────────┘
 \```
+
+(Generation note: include the LIVE GATE box, the "Live Gate" section, the live-gate
+block in Orchestration Logic, the live rows in resume.md, and the `live_gate` /
+`live_fix` / `live_verify` step values ONLY if the plan declares an env-gated done
+signal — otherwise omit them all and the final audit stays the last gate. If the
+repo has no GitHub remote / `gh`, drop the draft-PR mechanics and replace "flip PR
+to ready" with "report the gate result in the final summary".)
 
 (Generation note: replace `{{AUDIT_DEPTH_NOTE}}` with the chosen depth, e.g. `(depth: high)`. If the user chose **skip** for Final Audit in Step 2.5, omit ALL audit content at generation time: the "After QA passes:" connector line and this FINAL AUDIT box, the "Final Audit" section, the audit block in Orchestration Logic, the audit rows in Important Rules, the word "audit" in the Progress Tracking step enumeration, and the `final_audit`/`audit_fix`/`audit_verify` step values — keep only the `audit_status` field, with the rule "set `audit_status` to `\"SKIPPED\"` when QA passes".)
 
@@ -239,6 +267,75 @@ actual behavior, API contracts — and require per-finding adversarial verificat
 **NEVER invoke `/code-review ultra`** — ultra is user-triggered and billed; the local
 depth cap for this audit is `max`.
 
+## Live Gate (after the final audit passes)
+
+Runs in THIS orchestrator session. The plan's done signal ({{DONE_SIGNAL_COMMANDS}})
+needs live env a subagent cannot provision ({{LIVE_ENV_REQUIREMENTS}}). Tests may SKIP
+on missing env; the pipeline may not: **SKIP ≠ PASS**. Never declare the pipeline
+complete, and never take the PR out of draft, without a gate PASS or a recorded user
+waiver.
+
+1. **Open a draft PR** (`gh pr create --draft`): title from the plan; body summarizes
+   batches/QA/audit and states "Live gate: PENDING".
+2. **Preflight the env**: check every item in {{LIVE_ENV_REQUIREMENTS}}. You already ran
+   this preflight at session start (see Start), so the user has had the whole pipeline
+   runtime to prepare. Still missing → STOP and ask the user: provide the env, or
+   explicitly waive the gate.
+3. **Run the gate**: {{DONE_SIGNAL_COMMANDS}}. PASS → set `live_gate_status: "PASS"`,
+   flip the PR to ready (`gh pr ready`), pipeline complete.
+4. **On FAIL, triage before spending a fix cycle**:
+   - **Env/infra failure** (service down, expired credentials, missing display): NOT a
+     code defect and does NOT consume a fix cycle. Report to the user, wait for the env
+     repair, re-run the gate.
+   - **Code defect**: dispatch the Executor (below; step `live_fix`), then re-run the
+     gate (step `live_verify`). Max 2 code-fix cycles, tracked in `live_gate_attempts`.
+5. **Still failing after 2 code-fix cycles** → run the **Live-Gate Exhaustion SOP**.
+6. **Waiver path** (any point the user explicitly waives): set
+   `live_gate_status: "WAIVED: <user's reason>"`, disclose the waiver + reason in the
+   PR body and the final summary, flip the PR to ready. A waiver requires an explicit
+   user reply in this conversation — never infer it.
+
+### Dispatching Executor for Live-Gate Fixes
+
+Use the Agent tool with `model: {{EXECUTOR_MODEL}}`. Build the prompt by prepending the full body of `docs/superpowers/sessions/01-executor.md`, then appending:
+
+\```
+Fix the live done-signal failure.
+
+Gate command: {{DONE_SIGNAL_COMMANDS}}
+Failure output: [paste the exact failing output plus your triage notes]
+
+Find and fix the root cause. After the fix, run: {{VERIFICATION_COMMANDS_ONELINE}}, then commit: "fix(scope): description of fix".
+
+When done, output the root cause and the fix commit hashes.
+\```
+
+### Live-Gate Exhaustion SOP (2 code-fix cycles spent, gate still FAIL)
+
+1. **Freeze and record**: set `live_gate_status` to
+   `"BLOCKED: docs/superpowers/qa/YYYY-MM-DD-live-gate-failure.md"`; leave
+   `current_step` at `live_gate`. The PR stays draft; update its body to
+   "Live gate: BLOCKED — see <failure report link>".
+2. **Write the failure report** (dated, immutable) at that path: the exact gate command
+   and full failing output, each fix attempt (commits + why it did not hold), the
+   current root-cause hypothesis, and what would be needed to fix it. Commit it.
+3. **Seed the backlog**: add the root cause to the project's backlog as a table row
+   (P0 if it blocks the milestone), Source = the failure report. The blocked state must
+   survive this session dying.
+4. **STOP and present the user exactly four options** (never pick one yourself):
+   - **(a) Extend** — authorize more fix cycles. Only sensible if the last attempt shows
+     clear convergence toward a fix.
+   - **(b) Escalate to a plan** — the defect is bigger than a fix cycle (architectural).
+     Hand off to superpowers:writing-plans for a fix plan; its tasks re-enter this
+     pipeline as a new batch (normal PER-BATCH CYCLE → QA on the delta → re-audit the
+     new diff → re-attempt the gate with `live_gate_attempts` reset to 0).
+   - **(c) Waive** — the user explicitly waives with a reason → the Waiver path above.
+   - **(d) Park** — leave the PR draft with the BLOCKED note and end the pipeline;
+     progress.json + the failure report + the backlog row carry the full state for a
+     future session.
+5. A resumed session that finds `live_gate_status: "BLOCKED: …"` re-presents this menu —
+   it never silently retries the gate.
+
 ## Orchestration Logic
 
 Implement this as a loop:
@@ -289,7 +386,33 @@ if audit_result.has_critical:
     STOP — ask user for guidance
 write_backlog(audit_result.non_blocking)
 
-print("FINAL AUDIT PASSED — pipeline complete")
+print("FINAL AUDIT PASSED")
+
+# Live gate (this whole block is omitted at generation time if the plan
+# declares no env-gated done signal — the final audit then stays the last gate)
+open_draft_pr()                                  # stays draft until PASS or waiver
+env = preflight_live_env()                       # also ran at session start
+while not env.ready:
+    STOP — ask user: provide the env, or explicitly waive the gate
+    if user_waived:
+        record(live_gate_status = "WAIVED: <reason>"); flip_pr_ready()
+        print("PIPELINE COMPLETE — live gate waived"); EXIT
+    env = preflight_live_env()
+
+gate = run_done_signal()                         # step: live_gate
+while gate.failed:
+    if triage(gate) == "env_infra":              # env failures never consume fix cycles
+        STOP — ask user to repair the env
+        gate = run_done_signal(); continue
+    if live_gate_attempts == 2:
+        run_exhaustion_sop()                     # freeze → failure report → backlog row
+        EXIT (per the user's menu choice)        #   → 4-option user menu
+    dispatch_executor_fixes_from_live_gate(gate) # step: live_fix
+    gate = run_done_signal()                     # step: live_verify
+    live_gate_attempts += 1
+
+record(live_gate_status = "PASS"); flip_pr_ready()
+print("PIPELINE COMPLETE — done-signal passed")
 \```
 
 ## Important Rules
@@ -300,6 +423,9 @@ print("FINAL AUDIT PASSED — pipeline complete")
 - **Max 3 fix cycles per batch** — if review still fails after 3 rounds, stop and ask the user
 - **Max 2 QA fix cycles** — if QA still fails after 2 rounds, stop and ask the user
 - **Max 2 final-audit fix cycles** — if Critical findings persist after 2 rounds, stop and ask the user
+- **SKIP ≠ PASS** — an env-gated done signal skipped for missing env leaves the live gate unsatisfied; never declare the pipeline done or take the PR out of draft without a gate PASS or a recorded user waiver
+- **Preflight the live env at session start** — surface missing env to the user immediately, so they can prepare it while the batches run instead of discovering the gap at the end
+- **Max 2 live-gate code-fix cycles** — env/infra failures don't count toward the cap; after 2, run the Live-Gate Exhaustion SOP (freeze → failure report → backlog row → 4-option user menu) — never pick the option yourself
 - **NEVER invoke `/code-review ultra`** — it is user-triggered and billed; the local audit depth cap is `max`
 - **Announce progress** between each step so the user can follow along:
   - "Starting Batch 1 execution..."
@@ -338,6 +464,8 @@ After EVERY step (execute, review, fix, verify, QA, audit), update `docs/superpo
   "qa_status": null,
   "audit_status": null,
   "audit_attempts": 0,
+  "live_gate_status": null,
+  "live_gate_attempts": 0,
   "last_updated": "YYYY-MM-DDTHH:MM:SSZ",
   "notes": "Any context needed for resume"
 }
@@ -346,13 +474,19 @@ After EVERY step (execute, review, fix, verify, QA, audit), update `docs/superpo
 **This file is your memory.** Always read it at session start. Always update it after each step. This enables a new session to resume seamlessly.
 
 ### Update rules:
-- `current_step` is one of: `execute`, `review`, `fix`, `fix_verify`, `qa`, `qa_fix`, `qa_verify`, `final_audit`, `audit_fix`, `audit_verify`, `done`
+- `current_step` is one of: `execute`, `review`, `fix`, `fix_verify`, `qa`, `qa_fix`, `qa_verify`, `final_audit`, `audit_fix`, `audit_verify`, `live_gate`, `live_fix`, `live_verify`, `done`
 - After batch approval: move batch from `batches_in_progress` to `batches_completed`, increment `current_batch`
 - After QA pass: set `qa_status` to `"PASS"`
 - Record the initial audit as `final_audit`, executor fixes as `audit_fix`, and each
   re-audit as `audit_verify`. Increment `audit_attempts` on each `audit_fix` cycle (it
   persists the 2-cycle cap across interruptions). After the audit passes: set
   `audit_status` to `"PASS"`
+- `live_gate_status` is one of: `null` · `"PASS"` · `"WAIVED: <reason>"` ·
+  `"BLOCKED: <failure-report path>"`. Increment `live_gate_attempts` on each `live_fix`
+  cycle (persists the 2-cycle cap; env/infra failures never increment it). Reset it to 0
+  when an escalated fix plan re-enters the pipeline as a new batch
+- Set `current_step` to `done` only when `audit_status` is `"PASS"`/`"SKIPPED"` **and**
+  `live_gate_status` is `"PASS"` or `"WAIVED: …"` (or the plan declares no live gate)
 - Include commit hashes in `executor_commits` so reviewer knows what to diff
 
 ## Start
@@ -361,5 +495,8 @@ After EVERY step (execute, review, fix, verify, QA, audit), update `docs/superpo
    - If YES: read it and **resume from where it left off** (this is a self-healing restart)
    - If NO: create it, start fresh with Batch 1
 2. Read the implementation plan
-3. Begin execution. Announce each step as you go.
+3. **Preflight the live env now** (only if the plan declares an env-gated done signal):
+   check every item in {{LIVE_ENV_REQUIREMENTS}} and tell the user what is missing, so
+   they can prepare it in parallel while the batches run
+4. Begin execution. Announce each step as you go.
 ```

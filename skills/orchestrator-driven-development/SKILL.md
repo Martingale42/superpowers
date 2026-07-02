@@ -26,6 +26,9 @@ Read and extract from the codebase:
 3. **Project-specific rules** — linting, formatting, coding conventions (e.g., `no unwrap()` for Rust, `bun run build` for frontend)
 4. **Verification commands** — build, test, lint, format commands from the plan or codebase
 5. **Project name** — from the plan header or directory name
+6. **Done signal** — the plan header's acceptance command(s); note which are env-gated
+   and what env they need (these become `{{DONE_SIGNAL_COMMANDS}}` /
+   `{{LIVE_ENV_REQUIREMENTS}}` and decide whether the live gate is generated)
 
 ### Step 2: Define Batch Order
 
@@ -92,6 +95,11 @@ Create the session files in `<project-root>/docs/superpowers/sessions/`:
   per the generation notes in `orchestrator-template.md` and `resume-template.md` —
   keep only the `audit_status` field in progress.json, with the rule that the
   orchestrator sets it to `"SKIPPED"` when QA passes
+- Substitute `{{DONE_SIGNAL_COMMANDS}}` and `{{LIVE_ENV_REQUIREMENTS}}` from the plan
+  header's **Done signal** field. If the plan declares NO env-gated done signal, omit
+  all live-gate content per the generation notes in `orchestrator-template.md` and
+  `resume-template.md` (the `live_gate_status`/`live_gate_attempts` fields stay in
+  progress.json at their null/0 defaults)
 
 ### Step 4: Commit and Hand Off
 
@@ -129,7 +137,16 @@ After All Batches:
 After QA PASS:
   Final Audit (/code-review on whole branch) → if Critical: Executor fix → re-audit (max 2)
     → if still Critical after 2: STOP, ask user
-    → else: done (non-blocking findings → final-audit BACKLOG)
+    → else: non-blocking findings → final-audit BACKLOG
+
+After Final Audit PASS (only if the plan declares an env-gated done signal):
+  Live Gate: open DRAFT PR → env preflight → run the done signal
+    → env missing: STOP, ask user (provide env, or explicit waiver)
+    → FAIL (code defect): Executor fix → re-run (max 2; env/infra failures don't count)
+    → still FAIL after 2: Exhaustion SOP — freeze (BLOCKED), failure report,
+      backlog row, then STOP with a 4-option user menu
+      (extend / escalate-to-plan / waive / park)
+    → PASS or recorded waiver: flip PR to ready — pipeline complete
 ```
 
 ## Key Principles
@@ -141,3 +158,4 @@ After QA PASS:
 - **resume.md points to orchestrator.md** — keeps one source of truth for the pipeline rules
 - **Per-role model at dispatch** — each role's model is passed via the Agent tool's `model` parameter; effort is inherited from the orchestrator session (the Agent tool has no effort parameter), so run the coordinator at `/effort high`.
 - **Review the tests, not just the code** — the reviewer checklist targets test acceptance logic and doc claims, and the Final Audit re-checks the whole branch with fresh eyes
+- **SKIP ≠ PASS** — tests may skip on missing env; the pipeline may not. An env-gated done signal is a *gate*: the PR stays draft until the gate passes or the user explicitly waives it (waiver reason recorded in `live_gate_status` and disclosed in the PR body and final summary)

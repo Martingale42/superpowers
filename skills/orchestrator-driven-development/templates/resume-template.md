@@ -53,10 +53,15 @@ You are the development orchestrator for {{PROJECT_NAME}}. **Your previous sessi
 | `final_audit` | Audit was in progress. Re-invoke `/code-review` (or the reviewer-audit fallback) on the whole branch. |
 | `audit_fix` | Audit fixes in progress. Check the final-audit report for unresolved Critical findings; dispatch executor. |
 | `audit_verify` | Re-run the audit to verify fixes (counts toward the 2-cycle cap). |
+| `live_gate` | Live gate in progress. Check `live_gate_status` FIRST: `"BLOCKED: …"` → re-present the Live-Gate Exhaustion SOP menu from orchestrator.md (extend / escalate-to-plan / waive / park) — do NOT silently retry. Otherwise: verify the draft PR exists (create if missing), re-run the env preflight, and run the gate per orchestrator.md. |
+| `live_fix` | Live-gate fixes in progress. Check git log for fix commits since the last gate failure; dispatch executor for the remaining root cause, then re-run the gate. |
+| `live_verify` | Re-run the done signal (counts toward the 2-cycle cap via `live_gate_attempts`; env/infra failures don't count). |
 | `done` | Everything is complete. Nothing to do. |
 
 (Generation note: if the user chose **skip** for Final Audit in Step 2.5, omit the
-`final_audit` / `audit_fix` / `audit_verify` rows to match the generated orchestrator.md.)
+`final_audit` / `audit_fix` / `audit_verify` rows to match the generated orchestrator.md.
+If the plan declares no env-gated done signal, likewise omit the `live_gate` /
+`live_fix` / `live_verify` rows.)
 
 7. **Resume the orchestration loop** from the determined point, following the rules in `docs/superpowers/sessions/orchestrator.md`.
 

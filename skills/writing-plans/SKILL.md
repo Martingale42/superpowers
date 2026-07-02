@@ -57,8 +57,19 @@ This structure informs the task decomposition. Each task should produce self-con
 
 **Tech Stack:** [Key technologies/libraries]
 
+**Done signal:** [The acceptance command(s) that prove the feature works end-to-end.
+Mark any that are env-gated and list the env they need — e.g. `xvfb-run cargo test … -- --ignored` needs Xvfb + a service URL + credentials. Omit the marking if everything runs offline.]
+
 ---
 ```
+
+**Env-gated done signal ⇒ offline rehearsal task.** If the done signal needs env the
+pipeline cannot provision (a display server, a live service, human credentials), the
+plan MUST also include a task for an *offline rehearsal* of the same scenario: external
+dependencies stubbed, the real entry point and wiring exercised end-to-end. The live
+run then only validates the environment — never the wiring. (Lesson learned: a
+milestone whose only end-to-end test was env-gated shipped with its headline feature
+compiled but never executed; every unit test was green.)
 
 ## Task Structure
 
@@ -231,6 +242,7 @@ Every task must contain the actual content an engineer needs. These are **plan f
 - Clear implementation description (code when helpful)
 - Exact verification commands with expected output
 - Tests when they add value (not as ritual)
+- An env-gated done signal always gets an offline rehearsal task (stubbed externals, real entry point)
 - DRY, YAGNI, frequent commits
 - Reference relevant skills with explicit markers
 

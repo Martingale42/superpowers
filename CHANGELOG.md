@@ -8,6 +8,37 @@ file is kept distinct so it never conflicts on an upstream merge.
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased] — 2026-07-03
+
+### Added — live done-signal gate after the final audit (orchestrator + writing-plans)
+
+Lesson from a real milestone: its only end-to-end test was env-gated (`#[ignore]`),
+every offline gate was green, and the headline feature shipped compiled-but-never-executed.
+The pipeline had silently promoted "missing env is a SKIP" (a test-layer convention)
+into "offline green = done" (a completion definition). Fixes, in layers:
+
+- **`writing-plans`**: plan header gains a **Done signal** field (acceptance command(s),
+  env-gated ones marked with their env needs). New rule: an env-gated done signal MUST
+  come with an *offline rehearsal* task (externals stubbed, real entry point exercised) —
+  the live run validates the environment, never the wiring.
+- **`orchestrator-driven-development` QA role**: runs the offline done-signal rehearsal as
+  part of full QA (a rehearsal failure is a FAIL, not a skip); verdict vocabulary gains
+  `OFFLINE-PASS-LIVE-PENDING`, which explicitly does NOT satisfy the live gate.
+- **`orchestrator-driven-development` pipeline**: new **LIVE GATE** stage after the final
+  audit (generated only when the plan declares an env-gated done signal). Env preflight
+  runs at session start (user prepares env in parallel with the batches) and again at the
+  gate. The orchestrator opens a **draft PR** after the audit; the PR leaves draft only on
+  gate PASS or an explicit, reason-recorded user waiver (`live_gate_status:
+  "WAIVED: <reason>"`, disclosed in the PR body and final summary). Gate failures are
+  triaged env-vs-code; code defects get max 2 executor fix cycles (env failures don't
+  count); exhaustion triggers a **Live-Gate Exhaustion SOP** — freeze
+  (`"BLOCKED: <report>"`, PR stays draft), immutable failure report, backlog row, then a
+  STOP with a 4-option user menu (extend / escalate-to-plan / waive / park). A resumed
+  session that finds BLOCKED re-presents the menu instead of retrying. progress.json gains
+  `live_gate_status` / `live_gate_attempts`; `current_step` gains
+  `live_gate` / `live_fix` / `live_verify`. Core principle now stated in both skills:
+  **SKIP ≠ PASS** — tests may skip on missing env; the pipeline may not.
+
 ## [Unreleased] — 2026-06-26
 
 ### Changed — orchestrator default dispatch + unified docs layout

@@ -12,6 +12,8 @@
   "qa_status": null,
   "audit_status": null,
   "audit_attempts": 0,
+  "live_gate_status": null,
+  "live_gate_attempts": 0,
   "last_updated": "{{TIMESTAMP}}",
   "notes": "Orchestrator initialized from plan."
 }
